@@ -5,9 +5,11 @@ import android.graphics.drawable.Drawable;
 
 public class ConfigurationItemModel {
 
-    public String title;
-    public Intent activity;
-    public Drawable image;
+    private String title;
+    private Intent activity;
+    private Integer requestCode;
+    private Drawable image;
+    private String value;
 
     public String getTitle() {
         return title;
@@ -33,9 +35,27 @@ public class ConfigurationItemModel {
         this.activity = activity;
     }
 
-    public ConfigurationItemModel(String title, Drawable image, Intent activity) {
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public Integer getRequestCode() {
+        return requestCode;
+    }
+
+    public ConfigurationItemModel(String title, Drawable image, Intent activity, Integer requestCode) {
         this.title = title;
-        this.image = image;
         this.activity = activity;
+        this.requestCode = requestCode;
+        this.image = image;
+    }
+
+    public ConfigurationItemModel(String title, Drawable image, Intent activity, Integer requestCode, String value) {
+        this(title, image, activity, requestCode);
+        this.value = value;
     }
 }

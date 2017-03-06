@@ -22,6 +22,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
@@ -35,6 +37,7 @@ import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationText;
@@ -82,6 +85,8 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
      * Handler message id for updating the time periodically in interactive mode.
      */
     private static final int MSG_UPDATE_TIME = 0;
+
+    private SharedPreferences mPrefs;
 
     @Override
     public Engine onCreateEngine() {
@@ -169,13 +174,15 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             mCalendar = Calendar.getInstance();
 
+
+            mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
             /* Set defaults for fonts */
             mFontLight = Typeface.create("sans-serif-light", Typeface.NORMAL);
             mFontBold = Typeface.create("sans-serif", Typeface.BOLD);
             mFont = Typeface.create("sans-serif", Typeface.NORMAL);
 
             /* Set defaults for colors */
-            mPrimaryColor = Color.CYAN;
             mSecondaryColor = Color.rgb(128, 128, 128);
             mTertiaryColor = Color.rgb(76, 76, 76);
             mQuaternaryColor = Color.rgb(36, 36, 36);
@@ -304,11 +311,9 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private void updateWatchHandStyle() {
             if (mAmbient) {
                 mHourPaint.setColor(Color.WHITE);
-                mHourPaint.setTypeface(mFontLight);
-                mHourPaint.setTextAlign(Paint.Align.CENTER);
                 mMinutePaint.setColor(Color.WHITE);
-                mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 if (mLowBitAmbient || mBurnInProtection) {
+                    mHourPaint.setTypeface(mFontLight);
                     mHourPaint.setAntiAlias(false);
                     mMinutePaint.setAntiAlias(false);
                     mHourTickPaint.setAntiAlias(false);
@@ -316,6 +321,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     mComplicationArcValuePaint.setAntiAlias(false);
                     mComplicationArcPaint.setAntiAlias(false);
                     mComplicationCirclePaint.setAntiAlias(false);
+                    mComplicationPrimaryTextPaint.setTypeface(mFont);
                     mComplicationPrimaryTextPaint.setAntiAlias(false);
                     mComplicationTextPaint.setAntiAlias(false);
                 }
@@ -324,7 +330,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 mHourPaint.setColor(mPrimaryColor);
                 mHourPaint.setAntiAlias(true);
                 mHourPaint.setTypeface(mFont);
-                mHourPaint.setTextAlign(Paint.Align.CENTER);
 
                 mMinutePaint.setColor(mPrimaryColor);
                 mMinutePaint.setAntiAlias(true);
@@ -338,7 +343,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
                 mComplicationCirclePaint.setAntiAlias(true);
 
-                mComplicationPrimaryTextPaint.setTypeface(mFont);
+                mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setAntiAlias(true);
             }
@@ -417,8 +422,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         public void onDraw(Canvas canvas, Rect bounds) {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
-            //mLeftDialTapBox = null;
-            //mRightDialTapBox = null;
 
             drawBackground(canvas);
             drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, true);
@@ -460,9 +463,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                         drawTextComplication(canvas,
                                 complicationData,
                                 currentTimeMillis,
-                                mCenterX + (mCenterX / 2) * leftMultiply,
-                                mCenterY,
-                                mCenterX / 3 - 20,
                                 positionLeft);
                         break;
                 }
@@ -542,16 +542,16 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     mComplicationTextPaint);
 
             Drawable drawable = null;
-            Icon icon;
-            if (mAmbient) {
+            Icon icon = data.getIcon();
+            if (mAmbient && mBurnInProtection) {
                 icon = data.getBurnInProtectionIcon();
-
-            } else {
-                icon = data.getIcon();
             }
             if (icon != null) {
                 icon.setTint(mSecondaryColor);
-                drawable = icon.loadDrawable(getApplicationContext());
+                try {
+                    drawable = icon.loadDrawable(getApplicationContext());
+                } catch (Exception e) {
+                }
             }
             if (drawable != null) {
                 int size = (int) Math.round(0.20 * mCenterX);
@@ -560,9 +560,13 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void drawTextComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, float centerX, float centerY, float radius, boolean positionLeft) {
+        private void drawTextComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
             ComplicationText textTitle = data.getShortTitle();
             ComplicationText textShort = data.getShortText();
+
+            float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
+            float centerY = mCenterY;
+            float radius = mCenterX / 4.2f;
 
             setTapBox(centerX, centerY, radius, positionLeft);
 
@@ -593,7 +597,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
             float centerY = mCenterY;
-            float radius = mCenterX / 3 - 20;
+            float radius = mCenterX / 3 - 10;
 
             setTapBox(centerX, centerY, radius, positionLeft);
 
@@ -627,7 +631,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private void drawImageComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
             float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
             float centerY = mCenterY;
-            float radius = mCenterX / 3 - 20;
+            float radius = mCenterX / 3 - 10;
 
 
             setTapBox(centerX, centerY, radius, positionLeft);
@@ -667,6 +671,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         }
 
         private void drawWatchFace(Canvas canvas) {
+            mPrimaryColor = mPrefs.getInt("setting_color_value", Color.parseColor("#18FFFF"));
+            if(!mAmbient) {
+                mHourPaint.setColor(mPrimaryColor);
+                mMinutePaint.setColor(mPrimaryColor);
+            }
+
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
             if (!mAmbient) {
                 canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.8f, 360 * milliseconds / 60000, false, mSecondPaint);

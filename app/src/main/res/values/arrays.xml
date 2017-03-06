@@ -1,12 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="line_watch_face_names">
-        <item>Left complication</item>
-        <item>Right complication</item>
+        <item>Left\ncomplication</item>
+        <item>Right\ncomplication</item>
+        <item>Color</item>
+        <item>Background</item>
     </string-array>
     <array name="line_watch_face_icons">
-        <item>@drawable/ic_color_24dp</item>
-        <item>@drawable/ic_color_24dp</item>
-        <item>@drawable/ic_color_24dp</item>
+        <item>@drawable/ic_left_complication</item>
+        <item>@drawable/ic_right_complication</item>
+    </array>
+    <array name="line_watch_face_color_names">
+        <item>Red</item>
+        <item>Pink</item>
+        <item>Purple</item>
+        <item>Deep purple</item>
+        <item>Indigo</item>
+        <item>Blue</item>
+        <item>Light blue</item>
+        <item>Cyan</item>
+        <item>Teal</item>
+        <item>Green</item>
+        <item>Light green</item>
+        <item>Lime</item>
+        <item>Yellow</item>
+        <item>Amber</item>
+        <item>Orange</item>
+        <item>Deep orange</item>
+        <item>Brown</item>
+        <item>Grey</item>
+        <item>Blue grey</item>
+        <item>White</item>
+    </array>
+    <array name="line_watch_face_color_values">
+        <item>#FF5252</item>
+        <item>#FF4081</item>
+        <item>#E040FB</item>
+        <item>#7C4DFF</item>
+        <item>#536DFE</item>
+        <item>#448AFF</item>
+        <item>#40C4FF</item>
+        <item>#18FFFF</item>
+        <item>#64FFDA</item>
+        <item>#69F0AE</item>
+        <item>#B2FF59</item>
+        <item>#EEFF41</item>
+        <item>#FFFF00</item>
+        <item>#FFD740</item>
+        <item>#FFAB40</item>
+        <item>#FF6E40</item>
+        <item>#BCAAA4</item>
+        <item>#BDBDBD</item>
+        <item>#90A4AE</item>
+        <item>#ffffff</item>
     </array>
 </resources>

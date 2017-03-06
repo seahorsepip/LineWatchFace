@@ -50,6 +50,7 @@
         </service>
 
         <activity android:name="android.support.wearable.complications.ComplicationHelperActivity"/>
+        <activity android:name="LineWatchFaceConfigColorActivity"/>
         <activity
             android:name=".LineWatchFaceConfigActivity"
             android:label="Settings">

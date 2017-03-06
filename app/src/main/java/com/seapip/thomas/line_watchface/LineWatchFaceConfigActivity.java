@@ -2,15 +2,20 @@ package com.seapip.thomas.line_watchface;
 
 import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.content.res.TypedArray;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
-import android.support.wearable.view.DefaultOffsettingHelper;
 import android.support.wearable.view.WearableRecyclerView;
+import android.util.Log;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -23,62 +28,62 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
     private static final int PROVIDER_CHOOSER_REQUEST_CODE = 1;
 
     private ConfigurationAdapter mAdapter;
+    private SharedPreferences mPrefs;
+    private WearableRecyclerView mWearableRecyclerView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_line_watch_face_config);
 
+        mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
         mAdapter = new ConfigurationAdapter(getApplicationContext(), getConfigurationItems());
-        WearableRecyclerView wearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
-        wearableRecyclerView.setHasFixedSize(true);
-
-        DefaultOffsettingHelper offsettingHelper = new DefaultOffsettingHelper();
-
-        wearableRecyclerView.setCenterEdgeItems(true);
-        wearableRecyclerView.setOffsettingHelper(offsettingHelper);
         mAdapter.setListener(this);
-        wearableRecyclerView.setAdapter(mAdapter);
-        //mWearableConfigListView.setClickListener(this);
+        mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
+        mWearableRecyclerView.setAdapter(mAdapter);
+    }
 
+    private void create() {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PROVIDER_CHOOSER_REQUEST_CODE
-                && resultCode == RESULT_OK) {
+    protected void onActivityResult(int position, int resultCode, Intent data) {
+        View item = mWearableRecyclerView.getChildAt(position).findViewById(R.id.text_wrapper);
+        TextView text = ((TextView) item.findViewById(R.id.value_item));
+        String value = text.getText().toString();
+        if (resultCode == RESULT_OK) {
+            switch (position) {
+                case 0:
+                case 1:
+                    ComplicationProviderInfo complicationProviderInfo =
+                            data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
 
-            // Retrieves information for selected Complication provider.
-            ComplicationProviderInfo complicationProviderInfo =
-                    data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
+                    SharedPreferences.Editor mEditor = mPrefs.edit();
+                    value = "Empty";
+                    if (complicationProviderInfo != null) {
+                        value = complicationProviderInfo.providerName;
+                    }
 
-            finish();
+                    mEditor.putString("setting_complication_" + String.valueOf(position), value).commit();
+                    break;
+                case 2:
+                    value = mPrefs.getString("setting_color_name", "White");
+                    break;
+                case 3:
+                    value = mPrefs.getString("setting_background", "Black");
+                    break;
+            }
         }
+        text.setText(value);
+        mWearableRecyclerView.invalidate();
     }
 
     @Override
     public void onItemSelected(int position) {
-        startActivity(getConfigurationItems().get(position).getActivity());
+        startActivityForResult(getConfigurationItems().get(position).getActivity(),
+                getConfigurationItems().get(position).getRequestCode());
     }
-
-    /*
-    @Override
-    public void onClick(WearableListView.ViewHolder viewHolder) {
-        Integer tag = (Integer) viewHolder.itemView.getTag();
-        ComplicationItem complicationItem = mAdapter.getItem(tag);
-
-        // Note: If you were previously using ProviderChooserIntent.createProviderChooserIntent()
-        // (now deprecated), you will want to switch to
-        // ComplicationHelperActivity.createProviderChooserHelperIntent()
-        startActivityForResult(
-                ComplicationHelperActivity.createProviderChooserHelperIntent(
-                        getApplicationContext(),
-                        complicationItem.watchFace,
-                        complicationItem.complicationId,
-                        complicationItem.supportedTypes),
-                PROVIDER_CHOOSER_REQUEST_CODE);
-    }
-    */
 
     private ArrayList<ConfigurationItemModel> getConfigurationItems() {
         ComponentName watchFace = new ComponentName(
@@ -92,94 +97,38 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         TypedArray icons = getResources().obtainTypedArray(R.array.line_watch_face_icons);
 
         ArrayList<ConfigurationItemModel> items = new ArrayList<>();
-        for (int i = 0; i < complicationIds.length; i++) {
-            Intent intent = ComplicationHelperActivity.createProviderChooserHelperIntent(
-                    getApplicationContext(),
-                    watchFace,
-                    complicationIds[i],
-                    LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[i]);
-            items.add(new ConfigurationItemModel(complicationNames[i],
-                    icons.getDrawable(i),
-                    intent));
-        }
+        items.add(new ConfigurationItemModel("Left \ncomplication",
+                getDrawable(R.drawable.ic_right_complication),
+                ComplicationHelperActivity.createProviderChooserHelperIntent(
+                        getApplicationContext(),
+                        watchFace,
+                        complicationIds[0],
+                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
+                0,
+                mPrefs.getString("setting_complication_0", "Empty")));
+        items.add(new ConfigurationItemModel("Right \ncomplication",
+                getDrawable(R.drawable.ic_right_complication),
+                ComplicationHelperActivity.createProviderChooserHelperIntent(
+                        getApplicationContext(),
+                        watchFace,
+                        complicationIds[1],
+                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
+                1,
+                mPrefs.getString("setting_complication_1", "Empty")));
+        items.add(new ConfigurationItemModel("Color",
+                getDrawable(R.drawable.ic_color),
+                new Intent(LineWatchFaceConfigActivity.this, LineWatchFaceConfigColorActivity.class),
+                2,
+                mPrefs.getString("setting_color_name", "White")));
+        //TODO: Add background setting
+        /*
+        items.add(new ConfigurationItemModel("Background",
+                getDrawable(R.drawable.ic_background),
+                null,
+                3,
+                mPrefs.getString("setting_background", "Black")));
+                */
+        icons.recycle();
         return items;
     }
-
-    /*
-     * Inner class representing items of the ConfigurationAdapter (WearableListView.Adapter) class.
-     */
-    private final class ComplicationItem {
-        ComponentName watchFace;
-        int complicationId;
-        int[] supportedTypes;
-        Drawable icon;
-        String title;
-
-        public ComplicationItem(ComponentName watchFace, int complicationId, int[] supportedTypes,
-                                Drawable icon, String title) {
-            this.watchFace = watchFace;
-            this.complicationId = complicationId;
-            this.supportedTypes = supportedTypes;
-            this.icon = icon;
-            this.title = title;
-        }
-    }
-
-    /*
-    private static class ConfigurationAdapter extends WearableListView.Adapter {
-
-        private Context mContext;
-        private final LayoutInflater mInflater;
-        private List<ComplicationItem> mItems;
-
-
-        public ConfigurationAdapter (Context context, List<ComplicationItem> items) {
-            mContext = context;
-            mInflater = LayoutInflater.from(mContext);
-            mItems = items;
-        }
-
-        // Provides a reference to the type of views you're using
-        public static class ItemViewHolder extends WearableListView.ViewHolder {
-            private ImageView iconImageView;
-            private TextView textView;
-            public ItemViewHolder(View itemView) {
-                super(itemView);
-                iconImageView = (ImageView) itemView.findViewById(R.id.icon);
-                textView = (TextView) itemView.findViewById(R.id.name);
-            }
-        }
-
-        @Override
-        public WearableListView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-
-            // Inflate custom layout for list items.
-            return new ItemViewHolder(
-                    mInflater.inflate(R.layout.activity_line_watch_face_list_item, null));
-        }
-
-        @Override
-        public void onBindViewHolder(WearableListView.ViewHolder holder, int position) {
-
-            ItemViewHolder itemHolder = (ItemViewHolder) holder;
-
-            ImageView imageView = itemHolder.iconImageView;
-            imageView.setImageDrawable(mItems.get(position).icon);
-
-            TextView textView = itemHolder.textView;
-            textView.setText(mItems.get(position).title);
-
-            holder.itemView.setTag(position);
-        }
-
-        @Override
-        public int getItemCount() {
-            return mItems.size();
-        }
-
-        public ComplicationItem getItem(int position) {
-            return mItems.get(position);
-        }
-    }
-    */
 }

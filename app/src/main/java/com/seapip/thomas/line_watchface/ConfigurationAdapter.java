@@ -26,11 +26,14 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
 
         private TextView textView;
         private ImageView imageView;
+        private TextView valueView;
 
         ViewHolder(View view) {
             super(view);
             textView = (TextView) view.findViewById(R.id.text_item);
-            imageView = (ImageView) view.findViewById(R.id.item_image);
+            imageView = (ImageView) view.findViewById(R.id.image_item);
+            valueView = (TextView) view.findViewById(R.id.value_item);
+
         }
 
         void bind(final int position, final ItemSelectedListener listener) {
@@ -53,7 +56,7 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
     @Override
     public ConfigurationAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ViewHolder(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_curved_layout, parent, false));
+                .inflate(R.layout.activity_line_watch_face_list_item, parent, false));
     }
 
     @Override
@@ -61,6 +64,12 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
         if (data != null && !data.isEmpty()) {
             holder.textView.setText(data.get(position).getTitle());
             holder.imageView.setImageDrawable(data.get(position).getImage());
+            String val = data.get(position).getValue();
+            if(val != null) {
+                holder.valueView.setText(val);
+            } else {
+                holder.valueView.setVisibility(View.GONE);
+            }
             holder.bind(position, itemSelectedListener);
         }
     }
