@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Line Watch Face</string>
+    <string name="name">Line</string>
+    <string name="message">Watch face tapped</string>
+</resources>

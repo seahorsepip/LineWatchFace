@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="line_watch_face_names">
+        <item>Left complication</item>
+        <item>Right complication</item>
+    </string-array>
+    <array name="line_watch_face_icons">
+        <item>@drawable/ic_color_24dp</item>
+        <item>@drawable/ic_color_24dp</item>
+        <item>@drawable/ic_color_24dp</item>
+    </array>
+</resources>
