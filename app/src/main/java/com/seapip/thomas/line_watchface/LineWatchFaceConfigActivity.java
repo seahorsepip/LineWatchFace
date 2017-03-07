@@ -7,6 +7,7 @@ import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Dimension;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationProviderInfo;
@@ -24,9 +25,6 @@ import java.util.ArrayList;
  * allows for setting complications on the left and right of watch face.
  */
 public class LineWatchFaceConfigActivity extends WearableActivity implements ConfigurationAdapter.ItemSelectedListener {
-
-    private static final int PROVIDER_CHOOSER_REQUEST_CODE = 1;
-
     private ConfigurationAdapter mAdapter;
     private SharedPreferences mPrefs;
     private WearableRecyclerView mWearableRecyclerView;
@@ -68,7 +66,7 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                     mEditor.putString("setting_complication_" + String.valueOf(position), value).commit();
                     break;
                 case 2:
-                    value = mPrefs.getString("setting_color_name", "White");
+                    value = mPrefs.getString("setting_color_name", "Cyan");
                     break;
                 case 3:
                     value = mPrefs.getString("setting_background", "Black");
@@ -98,7 +96,7 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
 
         ArrayList<ConfigurationItemModel> items = new ArrayList<>();
         items.add(new ConfigurationItemModel("Left \ncomplication",
-                getDrawable(R.drawable.ic_right_complication),
+                getDrawable(R.drawable.ic_left_complication),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
                         getApplicationContext(),
                         watchFace,
@@ -119,7 +117,7 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                 getDrawable(R.drawable.ic_color),
                 new Intent(LineWatchFaceConfigActivity.this, LineWatchFaceConfigColorActivity.class),
                 2,
-                mPrefs.getString("setting_color_name", "White")));
+                mPrefs.getString("setting_color_name", "Cyan")));
         //TODO: Add background setting
         /*
         items.add(new ConfigurationItemModel("Background",

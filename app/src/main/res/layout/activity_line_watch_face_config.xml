@@ -3,6 +3,7 @@
     android:id="@+id/recycler_launcher_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="40dp"
-    android:paddingBottom="24dp"
+    android:paddingTop="@dimen/settings_padding"
+    android:paddingBottom="@dimen/settings_padding"
+    android:scrollbarStyle="outsideOverlay"
     android:scrollbars="vertical" />

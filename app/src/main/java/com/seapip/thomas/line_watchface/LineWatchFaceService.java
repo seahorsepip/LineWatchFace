@@ -48,6 +48,7 @@ import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
+import android.view.WindowInsets;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -156,6 +157,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private boolean mAmbient;
         private boolean mLowBitAmbient;
         private boolean mBurnInProtection;
+        private boolean mIsRound;
 
         private RectF mLeftDialTapBox;
         private RectF mRightDialTapBox;
@@ -306,6 +308,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             /* Check and trigger whether or not timer should be running (only in active mode). */
             updateTimer();
+        }
+
+        @Override
+        public void onApplyWindowInsets(WindowInsets insets) {
+            super.onApplyWindowInsets(insets);
+            mIsRound = insets.isRound();
         }
 
         private void updateWatchHandStyle() {
@@ -548,10 +556,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
             if (icon != null) {
                 icon.setTint(mSecondaryColor);
-                try {
-                    drawable = icon.loadDrawable(getApplicationContext());
-                } catch (Exception e) {
-                }
+                drawable = icon.loadDrawable(getApplicationContext());
             }
             if (drawable != null) {
                 int size = (int) Math.round(0.20 * mCenterX);
@@ -672,14 +677,33 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
         private void drawWatchFace(Canvas canvas) {
             mPrimaryColor = mPrefs.getInt("setting_color_value", Color.parseColor("#18FFFF"));
-            if(!mAmbient) {
+            if (!mAmbient) {
                 mHourPaint.setColor(mPrimaryColor);
                 mMinutePaint.setColor(mPrimaryColor);
             }
 
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
             if (!mAmbient) {
-                canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.8f, 360 * milliseconds / 60000, false, mSecondPaint);
+                float percentage = milliseconds / 60000f;
+                if(mIsRound){
+                    canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.8f, 360 * percentage, false, mSecondPaint);
+                } else {
+                    if (percentage > 0) {
+                        canvas.drawLine(mCenterX + 1, 1, mCenterX + mCenterX * (percentage / 0.125f), 1, mSecondPaint);
+                    }
+                    if (percentage > 0.125) {
+                        canvas.drawLine(mCenterX * 2 - 1, 1, mCenterX * 2 - 1, mCenterY * 2 * ((percentage - 0.125f) / 0.25f) - 1, mSecondPaint);
+                    }
+                    if (percentage > 0.375) {
+                        canvas.drawLine(mCenterX * 2 - 1, mCenterY * 2 - 1, mCenterX * 2 - mCenterX * 2 * ((percentage - 0.375f) / 0.25f) + 1, mCenterY * 2 - 1, mSecondPaint);
+                    }
+                    if (percentage > 0.625) {
+                        canvas.drawLine(1, mCenterY * 2 - 1, 1, mCenterY * 2 - mCenterY * 2 * ((percentage - 0.625f) / 0.25f) + 1, mSecondPaint);
+                    }
+                    if (percentage > 0.875) {
+                        canvas.drawLine(1, 1, mCenterX * ((percentage - 0.875f) / 0.125f) - 1, 1, mSecondPaint);
+                    }
+                }
             }
 
             float outerRadius = mCenterX - 6;
