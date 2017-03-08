@@ -500,7 +500,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             float centerX = mCenterX + (mCenterX / 4 + 10) * (positionLeft ? -1 : 1);
             float centerY = mCenterY + (mCenterY / 4 + 10) * (positionLeft ? -1 : 1);
-            float radius = mCenterX / 2 - 20;
+            float radius = mCenterX / 2;
+
+            if (!mIsRound) {
+                radius *= 1.2f;
+            }
+            radius -= 20;
 
             float startAngle = positionLeft ? 90 : -90;
 
@@ -682,10 +687,69 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 mMinutePaint.setColor(mPrimaryColor);
             }
 
+            if (mIsRound) {
+                float outerRadius = mCenterX - 6;
+                for (int tickIndex = 0; tickIndex < 60; tickIndex++) {
+                    Paint tickPaint = mTickPaint;
+                    float innerRadius = mCenterX - (0.10f * mCenterX);
+                    if (tickIndex % 5 == 0) {
+                        tickPaint = mHourTickPaint;
+                        innerRadius -= (0.05f * mCenterX);
+                    }
+                    float tickRot = (float) (tickIndex * Math.PI * 2 / 60);
+                    float innerX = (float) Math.sin(tickRot) * innerRadius;
+                    float innerY = (float) -Math.cos(tickRot) * innerRadius;
+                    float outerX = (float) Math.sin(tickRot) * outerRadius;
+                    float outerY = (float) -Math.cos(tickRot) * outerRadius;
+                    canvas.drawLine(mCenterX + innerX, mCenterY + innerY,
+                            mCenterX + outerX, mCenterY + outerY, tickPaint);
+                }
+
+                outerRadius--;
+                float innerRadius = mCenterX / 2;
+                float minuteRot = (float) Math.PI / 30 * mCalendar.get(Calendar.MINUTE);
+                float innerX = (float) Math.sin(minuteRot) * innerRadius;
+                float innerY = (float) -Math.cos(minuteRot) * innerRadius;
+                float outerX = (float) Math.sin(minuteRot) * outerRadius;
+                float outerY = (float) -Math.cos(minuteRot) * outerRadius;
+                canvas.drawLine(mCenterX + innerX, mCenterY + innerY,
+                        mCenterX + outerX, mCenterY + outerY, mMinutePaint);
+            } else {
+                for (int x = 0; x < 4; x++) {
+                    canvas.save();
+                    canvas.rotate(x * 90, mCenterX, mCenterY);
+                    for (int tickIndex = 0; tickIndex < 15; tickIndex++) {
+                        Paint tickPaint = mTickPaint;
+                        float magic = (float) (-1 / Math.tan(-0.25 * Math.PI + tickIndex * Math.PI / 30 + Math.PI / 60));
+                        float outerY = mCenterY - 6;
+                        float outerX = outerY / magic;
+                        float innerY = mCenterY - (0.10f * mCenterX);
+                        if ((tickIndex + 3) % 5 == 0) {
+                            tickPaint = mHourTickPaint;
+                            innerY -= 0.05f * mCenterX;
+                        }
+                        float innerX = innerY / magic;
+                        canvas.drawLine(innerX + mCenterX, mCenterY + innerY, outerX + mCenterX, mCenterY + outerY, tickPaint);
+                    }
+                    canvas.restore();
+                }
+
+                int min = mCalendar.get(Calendar.MINUTE) + 7;
+                canvas.save();
+                canvas.rotate((float) Math.floor(min / 15) * 90 - 180, mCenterX, mCenterY);
+                float magic = (float) (-1 / Math.tan(-0.25 * Math.PI + (min % 15) * Math.PI / 30 + Math.PI / 60));
+                float outerY = mCenterY - 7;
+                float outerX = outerY / magic;
+                float innerY = mCenterY / 2;
+                float innerX = innerY / magic;
+                canvas.drawLine(innerX + mCenterX, mCenterY + innerY, outerX + mCenterX, mCenterY + outerY, mMinutePaint);
+                canvas.restore();
+            }
+
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
             if (!mAmbient) {
                 float percentage = milliseconds / 60000f;
-                if(mIsRound){
+                if (mIsRound) {
                     canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.8f, 360 * percentage, false, mSecondPaint);
                 } else {
                     if (percentage > 0) {
@@ -705,33 +769,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     }
                 }
             }
-
-            float outerRadius = mCenterX - 6;
-            for (int tickIndex = 0; tickIndex < 60; tickIndex++) {
-                Paint tickPaint = mTickPaint;
-                float innerRadius = mCenterX - (0.10f * mCenterX);
-                if (tickIndex % 5 == 0) {
-                    tickPaint = mHourTickPaint;
-                    innerRadius -= (0.05f * mCenterX);
-                }
-                float tickRot = (float) (tickIndex * Math.PI * 2 / 60);
-                float innerX = (float) Math.sin(tickRot) * innerRadius;
-                float innerY = (float) -Math.cos(tickRot) * innerRadius;
-                float outerX = (float) Math.sin(tickRot) * outerRadius;
-                float outerY = (float) -Math.cos(tickRot) * outerRadius;
-                canvas.drawLine(mCenterX + innerX, mCenterY + innerY,
-                        mCenterX + outerX, mCenterY + outerY, tickPaint);
-            }
-
-            outerRadius = mCenterX - 7;
-            float innerRadius = mCenterX / 2;
-            float minuteRot = (float) Math.PI / 30 * mCalendar.get(Calendar.MINUTE);
-            float innerX = (float) Math.sin(minuteRot) * innerRadius;
-            float innerY = (float) -Math.cos(minuteRot) * innerRadius;
-            float outerX = (float) Math.sin(minuteRot) * outerRadius;
-            float outerY = (float) -Math.cos(minuteRot) * outerRadius;
-            canvas.drawLine(mCenterX + innerX, mCenterY + innerY,
-                    mCenterX + outerX, mCenterY + outerY, mMinutePaint);
 
             String hourString;
             if (DateFormat.is24HourFormat(LineWatchFaceService.this)) {
