@@ -28,9 +28,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
@@ -38,15 +40,20 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
+import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ComplicationText;
+import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.SparseArray;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 import android.widget.Switch;
@@ -56,8 +63,10 @@ import java.lang.ref.WeakReference;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.Executor;
 
 import static android.support.wearable.watchface.WatchFaceStyle.AMBIENT_PEEK_MODE_VISIBLE;
+import static android.support.wearable.watchface.WatchFaceStyle.KEY_VIEW_PROTECTION_MODE;
 
 /**
  * Analog watch face with a ticking second hand. In ambient mode, the second hand isn't
@@ -68,8 +77,8 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
     // Left and right dial supported types.
     public static final int[][] COMPLICATION_SUPPORTED_TYPES = {
-            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_ICON, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_LONG_TEXT},
-            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_ICON, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_LONG_TEXT}
+            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_LONG_TEXT, ComplicationData.TYPE_SHORT_TEXT},
+            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_LONG_TEXT, ComplicationData.TYPE_SHORT_TEXT}
     };
     // Unique IDs for each complication.
     private static final int LEFT_DIAL_COMPLICATION = 0;
@@ -147,6 +156,10 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private Paint mComplicationPrimaryTextPaint;
         private Paint mComplicationTextPaint;
         private Paint mBackgroundPaint;
+        private Paint mNotificationBackgroundPaint;
+        private Paint mNotificationCirclePaint;
+        private Paint mNotificationTextPaint;
+
 
         private Typeface mFontLight;
         private Typeface mFontBold;
@@ -162,15 +175,15 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private RectF mLeftDialTapBox;
         private RectF mRightDialTapBox;
 
+        private int mUnreadNotificationCount;
+        private int mNotificationCount;
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
             setWatchFaceStyle(new WatchFaceStyle.Builder(LineWatchFaceService.this)
-                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_SHORT)
-                    .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
-                    .setShowSystemUiTime(false)
-                    .setAmbientPeekMode(AMBIENT_PEEK_MODE_VISIBLE)
+                    .setStatusBarGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL)
                     .setAcceptsTapEvents(true)
                     .build());
 
@@ -192,6 +205,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             initializeBackground();
             initializeComplication();
             initializeWatchFace();
+            initializeNotificationCount();
         }
 
         private void initializeBackground() {
@@ -222,7 +236,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             mComplicationCirclePaint = new Paint();
             mComplicationCirclePaint.setColor(mQuaternaryColor);
-            mComplicationCirclePaint.setStrokeWidth(4f);
+            mComplicationCirclePaint.setStrokeWidth(3f);
             mComplicationCirclePaint.setAntiAlias(true);
             mComplicationCirclePaint.setStrokeCap(Paint.Cap.SQUARE);
             mComplicationCirclePaint.setStyle(Paint.Style.STROKE);
@@ -245,7 +259,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             mMinutePaint = new Paint();
             mMinutePaint.setColor(mPrimaryColor);
-            mMinutePaint.setStrokeWidth(6f);
+            mMinutePaint.setStrokeWidth(4f);
             mMinutePaint.setAntiAlias(true);
             mMinutePaint.setStrokeCap(Paint.Cap.SQUARE);
 
@@ -267,6 +281,22 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mTickPaint.setStrokeWidth(4f);
             mTickPaint.setAntiAlias(true);
             mTickPaint.setStrokeCap(Paint.Cap.SQUARE);
+        }
+
+        private void initializeNotificationCount() {
+            mNotificationBackgroundPaint = new Paint();
+
+            mNotificationCirclePaint = new Paint();
+            mNotificationCirclePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+            mNotificationCirclePaint.setColor(Color.WHITE);
+            mNotificationCirclePaint.setAntiAlias(true);
+            mNotificationCirclePaint.setStrokeWidth(2);
+
+            mNotificationTextPaint = new Paint();
+            mNotificationTextPaint.setColor(mBackgroundColor);
+            mNotificationTextPaint.setTextAlign(Paint.Align.CENTER);
+            mNotificationTextPaint.setAntiAlias(true);
+            mNotificationTextPaint.setTypeface(mFontBold);
         }
 
         @Override
@@ -292,6 +322,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mActiveComplicationDataSparseArray.put(complicationId, complicationData);
             invalidate();
         }
+
 
         @Override
         public void onTimeTick() {
@@ -324,36 +355,52 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     mHourPaint.setTypeface(mFontLight);
                     mHourPaint.setAntiAlias(false);
                     mMinutePaint.setAntiAlias(false);
+                    mMinutePaint.setStrokeWidth(2f);
                     mHourTickPaint.setAntiAlias(false);
+                    mHourTickPaint.setStrokeWidth(2f);
                     mTickPaint.setAntiAlias(false);
+                    mTickPaint.setStrokeWidth(2f);
                     mComplicationArcValuePaint.setAntiAlias(false);
+                    mComplicationArcValuePaint.setStrokeWidth(2f);
                     mComplicationArcPaint.setAntiAlias(false);
+                    mComplicationArcPaint.setStrokeWidth(2f);
                     mComplicationCirclePaint.setAntiAlias(false);
+                    mComplicationCirclePaint.setStrokeWidth(2f);
                     mComplicationPrimaryTextPaint.setTypeface(mFont);
                     mComplicationPrimaryTextPaint.setAntiAlias(false);
                     mComplicationTextPaint.setAntiAlias(false);
+                    mNotificationCirclePaint.setStyle(Paint.Style.STROKE);
+                    mNotificationCirclePaint.setAntiAlias(false);
+                    mNotificationTextPaint.setColor(Color.WHITE);
+                    mNotificationTextPaint.setTypeface(mFont);
+                    mNotificationTextPaint.setAntiAlias(false);
                 }
 
             } else {
                 mHourPaint.setColor(mPrimaryColor);
                 mHourPaint.setAntiAlias(true);
                 mHourPaint.setTypeface(mFont);
-
                 mMinutePaint.setColor(mPrimaryColor);
                 mMinutePaint.setAntiAlias(true);
-
+                mMinutePaint.setStrokeWidth(4f);
                 mHourTickPaint.setAntiAlias(true);
-
+                mHourTickPaint.setStrokeWidth(4f);
                 mTickPaint.setAntiAlias(true);
-
+                mTickPaint.setStrokeWidth(4f);
                 mComplicationArcValuePaint.setAntiAlias(true);
+                mComplicationArcValuePaint.setStrokeWidth(4f);
                 mComplicationArcPaint.setAntiAlias(true);
-
+                mComplicationArcPaint.setStrokeWidth(4f);
                 mComplicationCirclePaint.setAntiAlias(true);
-
+                mComplicationCirclePaint.setStrokeWidth(3f);
                 mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setAntiAlias(true);
+                mNotificationCirclePaint.setStyle(Paint.Style.FILL_AND_STROKE);
+                mNotificationCirclePaint.setAntiAlias(true);
+                mNotificationTextPaint.setColor(mBackgroundColor);
+                mNotificationTextPaint.setTypeface(mFontBold);
+                mNotificationTextPaint.setAntiAlias(true);
             }
         }
 
@@ -373,6 +420,11 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mHourPaint.setTextSize(width / 6);
             mComplicationPrimaryTextPaint.setTextSize(width / 18);
             mComplicationTextPaint.setTextSize(width / 20);
+            mNotificationTextPaint.setTextSize(width / 25);
+
+            int gradientColor = Color.argb(200, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
+            Shader shader = new LinearGradient(0, height - 100, 0, height, Color.TRANSPARENT, gradientColor, Shader.TileMode.CLAMP);
+            mNotificationBackgroundPaint.setShader(shader);
         }
 
         /**
@@ -427,6 +479,18 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         }
 
         @Override
+        public void onUnreadCountChanged(int count) {
+            super.onUnreadCountChanged(count);
+            mUnreadNotificationCount = count;
+        }
+
+        @Override
+        public void onNotificationCountChanged(int count) {
+            super.onNotificationCountChanged(count);
+            mNotificationCount = count;
+        }
+
+        @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
@@ -435,6 +499,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, true);
             drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, false);
             drawWatchFace(canvas);
+            drawNotificationCount(canvas);
         }
 
         private void drawBackground(Canvas canvas) {
@@ -444,7 +509,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private void drawComplication(Canvas canvas, long currentTimeMillis, int id, boolean positionLeft) {
             ComplicationData complicationData;
             complicationData = mActiveComplicationDataSparseArray.get(id);
-            int leftMultiply = positionLeft ? -1 : 1;
 
             if ((complicationData != null) && (complicationData.isActive(currentTimeMillis))) {
                 switch (complicationData.getType()) {
@@ -564,7 +628,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 drawable = icon.loadDrawable(getApplicationContext());
             }
             if (drawable != null) {
-                int size = (int) Math.round(0.20 * mCenterX);
+                int size = (int) Math.round(0.15 * mCenterX);
                 drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
                 drawable.draw(canvas);
             }
@@ -622,12 +686,14 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 icon = data.getIcon();
             }
             if (icon != null) {
-                icon.setTint(mSecondaryColor);
+                icon.setTint(Color.RED);
                 drawable = icon.loadDrawable(getApplicationContext());
             }
             if (drawable != null) {
+                //Log.d("LINE", "drawable exists!");
                 int size = (int) Math.round(0.15 * mCenterX);
-                drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 6), Math.round(centerX + size / 2), Math.round(centerY + 6));
+                //drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 6), Math.round(centerX + size / 2), Math.round(centerY + 6));
+                drawable.setBounds(100, 100, 400, 400);
                 drawable.draw(canvas);
             }
 
@@ -781,6 +847,24 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 hourString = String.valueOf(hour);
             }
             canvas.drawText(hourString, mCenterX, mCenterY - (mHourPaint.descent() + mHourPaint.ascent()) / 2, mHourPaint);
+        }
+
+        private void drawNotificationCount(Canvas canvas) {
+            int count = 0;
+            NotificationIndicator notificationCount = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.NONE.getValue()));
+            switch (notificationCount) {
+                case UNREAD:
+                    count = mUnreadNotificationCount;
+                    break;
+                case ALL:
+                    count = mNotificationCount;
+                    break;
+            }
+            if (count > 0) {
+                canvas.drawRect(0, mCenterY * 2 - 100, mCenterX * 2, mCenterY * 2, mNotificationBackgroundPaint);
+                canvas.drawCircle(mCenterX, mCenterY * 2 - 6 - mCenterX * 0.1f, mCenterX * 0.08f, mNotificationCirclePaint);
+                canvas.drawText(String.valueOf(mNotificationCount), mCenterX, mCenterY * 2 - 6 - mCenterX * 0.1f - (mNotificationTextPaint.descent() + mNotificationTextPaint.ascent()) / 2, mNotificationTextPaint);
+            }
         }
 
         @Override

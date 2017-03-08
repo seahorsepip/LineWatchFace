@@ -5,7 +5,9 @@
     <uses-feature android:name="android.hardware.type.watch" />
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="com.google.android.permission.PROVIDE_BACKGROUND" />
     <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA" />
+    <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA_PRIVILEGED" />
 
     <application
         android:allowBackup="true"
@@ -20,11 +22,11 @@
 
         <meta-data
             android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version"/>
+            android:value="@integer/google_play_services_version" />
 
         <uses-library
             android:name="com.google.android.wearable"
-            android:required="false"/>
+            android:required="false" />
 
         <service
             android:name=".LineWatchFaceService"
@@ -41,7 +43,8 @@
                 android:resource="@drawable/preview_round" />
             <meta-data
                 android:name="com.google.android.wearable.watchface.wearableConfigurationAction"
-                android:value="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE"/>
+                android:value="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE" />
+
             <intent-filter>
                 <action android:name="android.service.wallpaper.WallpaperService" />
 
@@ -49,16 +52,16 @@
             </intent-filter>
         </service>
 
-        <activity android:name="android.support.wearable.complications.ComplicationHelperActivity"/>
-        <activity android:name="LineWatchFaceConfigColorActivity"/>
+        <activity android:name="android.support.wearable.complications.ComplicationHelperActivity" />
+        <activity android:name="LineWatchFaceConfigColorActivity" />
         <activity
             android:name=".LineWatchFaceConfigActivity"
             android:label="Settings">
             <intent-filter>
-                <action android:name="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE"/>
+                <action android:name="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE" />
 
-                <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION"/>
-                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="com.google.android.wearable.watchface.category.WEARABLE_CONFIGURATION" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
     </application>

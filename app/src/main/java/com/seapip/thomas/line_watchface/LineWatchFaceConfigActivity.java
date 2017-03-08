@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Dimension;
@@ -15,6 +16,7 @@ import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.view.WearableRecyclerView;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -42,22 +44,21 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         mWearableRecyclerView.setAdapter(mAdapter);
     }
 
-    private void create() {
-    }
-
     @Override
     protected void onActivityResult(int position, int resultCode, Intent data) {
-        View item = mWearableRecyclerView.getChildAt(position).findViewById(R.id.text_wrapper);
-        TextView text = ((TextView) item.findViewById(R.id.value_item));
+        View item = mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.text_wrapper);
+        TextView text = (TextView) item.findViewById(R.id.value_item);
+        ImageView image = (ImageView) mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.image_item);
         String value = text.getText().toString();
+        SharedPreferences.Editor mEditor = mPrefs.edit();
         if (resultCode == RESULT_OK) {
+            Log.d("LINE", String.valueOf(position));
             switch (position) {
                 case 0:
                 case 1:
                     ComplicationProviderInfo complicationProviderInfo =
                             data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
 
-                    SharedPreferences.Editor mEditor = mPrefs.edit();
                     value = "Empty";
                     if (complicationProviderInfo != null) {
                         value = complicationProviderInfo.providerName;
@@ -69,26 +70,43 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                     value = mPrefs.getString("setting_color_name", "Cyan");
                     break;
                 case 3:
-                    value = mPrefs.getString("setting_background", "Black");
+                    NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.NONE.getValue()));
+                    Drawable drawable = getDrawable(R.drawable.ic_notification);
+                    switch (notificationIndicator) {
+                        case NONE:
+                            notificationIndicator = NotificationIndicator.UNREAD;
+                            break;
+                        case UNREAD:
+                            notificationIndicator = NotificationIndicator.ALL;
+                            break;
+                        case ALL:
+                            notificationIndicator = NotificationIndicator.NONE;
+                            drawable = getDrawable(R.drawable.ic_notification_disabled);
+                            break;
+                    }
+                    mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).commit();
+                    value = notificationIndicator.toString();
+                    image.setImageDrawable(drawable);
                     break;
             }
+            text.setText(value);
         }
-        text.setText(value);
         mWearableRecyclerView.invalidate();
     }
 
     @Override
     public void onItemSelected(int position) {
-        startActivityForResult(getConfigurationItems().get(position).getActivity(),
-                getConfigurationItems().get(position).getRequestCode());
+        Intent activity = getConfigurationItems().get(position).getActivity();
+        if(activity != null){
+            startActivityForResult(activity, position);
+        } else {
+            onActivityResult(position, RESULT_OK, null);
+        }
     }
 
     private ArrayList<ConfigurationItemModel> getConfigurationItems() {
         ComponentName watchFace = new ComponentName(
                 getApplicationContext(), LineWatchFaceService.class);
-
-        String[] complicationNames =
-                getResources().getStringArray(R.array.line_watch_face_names);
 
         int[] complicationIds = LineWatchFaceService.COMPLICATION_IDS;
 
@@ -102,7 +120,6 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                         watchFace,
                         complicationIds[0],
                         LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
-                0,
                 mPrefs.getString("setting_complication_0", "Empty")));
         items.add(new ConfigurationItemModel("Right \ncomplication",
                 getDrawable(R.drawable.ic_right_complication),
@@ -111,13 +128,16 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                         watchFace,
                         complicationIds[1],
                         LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
-                1,
                 mPrefs.getString("setting_complication_1", "Empty")));
         items.add(new ConfigurationItemModel("Color",
                 getDrawable(R.drawable.ic_color),
                 new Intent(LineWatchFaceConfigActivity.this, LineWatchFaceConfigColorActivity.class),
-                2,
                 mPrefs.getString("setting_color_name", "Cyan")));
+        NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.NONE.getValue()));
+        items.add(new ConfigurationItemModel("Notification indicator",
+                getDrawable(notificationIndicator == NotificationIndicator.NONE ? R.drawable.ic_notification_disabled: R.drawable.ic_notification),
+                null,
+                notificationIndicator.toString()));
         //TODO: Add background setting
         /*
         items.add(new ConfigurationItemModel("Background",

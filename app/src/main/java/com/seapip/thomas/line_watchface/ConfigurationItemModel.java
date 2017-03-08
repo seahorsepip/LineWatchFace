@@ -43,19 +43,14 @@ public class ConfigurationItemModel {
         this.value = value;
     }
 
-    public Integer getRequestCode() {
-        return requestCode;
-    }
-
-    public ConfigurationItemModel(String title, Drawable image, Intent activity, Integer requestCode) {
+    public ConfigurationItemModel(String title, Drawable image, Intent activity) {
         this.title = title;
         this.activity = activity;
-        this.requestCode = requestCode;
         this.image = image;
     }
 
-    public ConfigurationItemModel(String title, Drawable image, Intent activity, Integer requestCode, String value) {
-        this(title, image, activity, requestCode);
+    public ConfigurationItemModel(String title, Drawable image, Intent activity, String value) {
+        this(title, image, activity);
         this.value = value;
     }
 }
