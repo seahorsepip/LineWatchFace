@@ -83,19 +83,18 @@ public class LineWatchFaceConfigColorActivity extends WearableActivity implement
         ArrayList<ConfigurationItemModel> items = new ArrayList<>();
         for (int i = 0; i < color_names.length; i++) {
             final int color = color_values[i];
+            final float radius = 20 * this.getResources().getDisplayMetrics().density;
             Drawable drawable = new Drawable() {
                 @Override
                 public void draw(@NonNull Canvas canvas) {
-                    float width = canvas.getWidth();
-                    float height = canvas.getHeight();
                     Paint backgroundPaint = new Paint();
                     backgroundPaint.setAntiAlias(true);
                     backgroundPaint.setColor(Color.argb(51, 255, 255, 255));
                     Paint colorPaint = new Paint();
                     colorPaint.setAntiAlias(true);
                     colorPaint.setColor(color);
-                    canvas.drawCircle(width / 2, height / 2, width / 2, backgroundPaint);
-                    canvas.drawCircle(width / 2, height / 2, width / 4, colorPaint);
+                    canvas.drawCircle(radius, radius, radius, backgroundPaint);
+                    canvas.drawCircle(radius, radius, radius / 2, colorPaint);
                 }
 
                 @Override

@@ -65,7 +65,7 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
             holder.textView.setText(data.get(position).getTitle());
             holder.imageView.setImageDrawable(data.get(position).getImage());
             String val = data.get(position).getValue();
-            if(val != null) {
+            if (val != null) {
                 holder.valueView.setText(val);
             } else {
                 holder.valueView.setVisibility(View.GONE);
