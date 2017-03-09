@@ -244,6 +244,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mComplicationTextPaint = new Paint();
             mComplicationTextPaint.setColor(mTertiaryColor);
             mComplicationTextPaint.setAntiAlias(true);
+            mComplicationTextPaint.setTypeface(mFontBold);
         }
 
         private void initializeWatchFace() {
@@ -364,6 +365,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     mComplicationPrimaryTextPaint.setTypeface(mFont);
                     mComplicationPrimaryTextPaint.setAntiAlias(false);
                     mComplicationTextPaint.setAntiAlias(false);
+                    mComplicationTextPaint.setTypeface(mFont);
                     mNotificationCirclePaint.setStyle(Paint.Style.STROKE);
                     mNotificationCirclePaint.setAntiAlias(false);
                     mNotificationTextPaint.setColor(Color.WHITE);
@@ -391,6 +393,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setAntiAlias(true);
+                mComplicationTextPaint.setTypeface(mFontBold);
                 mNotificationCirclePaint.setStyle(Paint.Style.FILL_AND_STROKE);
                 mNotificationCirclePaint.setAntiAlias(true);
                 mNotificationTextPaint.setColor(mBackgroundColor);
@@ -508,26 +511,21 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if ((complicationData != null) && (complicationData.isActive(currentTimeMillis))) {
                 switch (complicationData.getType()) {
                     case ComplicationData.TYPE_RANGED_VALUE:
+                        Log.d("LINE", "A");
                         drawRangeComplication(canvas,
                                 complicationData,
                                 positionLeft);
                         break;
-                    case ComplicationData.TYPE_ICON:
-                    case ComplicationData.TYPE_NO_DATA:
-                        drawIconComplication(canvas,
-                                complicationData,
-                                currentTimeMillis,
-                                positionLeft);
-                        break;
                     case ComplicationData.TYPE_SMALL_IMAGE:
+                        Log.d("LINE", "C");
                         drawImageComplication(canvas,
                                 complicationData,
                                 currentTimeMillis,
                                 positionLeft);
                         break;
                     case ComplicationData.TYPE_SHORT_TEXT:
-                    case ComplicationData.TYPE_NO_PERMISSION:
-                        drawTextComplication(canvas,
+                        Log.d("LINE", "D");
+                        drawShortTextComplication(canvas,
                                 complicationData,
                                 currentTimeMillis,
                                 positionLeft);
@@ -629,9 +627,10 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void drawTextComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
-            ComplicationText textTitle = data.getShortTitle();
-            ComplicationText textShort = data.getShortText();
+        private void drawShortTextComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
+            ComplicationText title = data.getShortTitle();
+            ComplicationText shortText = data.getShortText();
+            Icon icon = mBurnInProtection && mAmbient ? data.getBurnInProtectionIcon() : data.getIcon();
 
             float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
             float centerY = mCenterY;
@@ -643,22 +642,30 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
             mComplicationTextPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(textShort.getText(
-                    getApplicationContext(),
-                    currentTimeMillis
-                    ).toString(),
-                    centerX,
-                    centerY - 6,
-                    mComplicationPrimaryTextPaint);
-            if (textTitle != null) {
-                canvas.drawText(textTitle.getText(
-                        getApplicationContext(),
-                        currentTimeMillis
-                        ).toString().toUpperCase(),
+
+            float shortTextY = centerY - (mComplicationTextPaint.descent() + mComplicationTextPaint.ascent() / 2);
+
+            if (icon != null) {
+                icon.setTint(mSecondaryColor);
+                Drawable drawable = icon.loadDrawable(getApplicationContext());
+                if(drawable != null) {
+                    int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 2), Math.round(centerX + size / 2), Math.round(centerY - 2));
+                    drawable.draw(canvas);
+                }
+                shortTextY = centerY - mComplicationPrimaryTextPaint.descent() - mComplicationPrimaryTextPaint.ascent() + 4;
+            } else if (title != null) {
+                canvas.drawText(title.getText(getApplicationContext(), currentTimeMillis).toString().toUpperCase(),
                         centerX,
-                        centerY - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent() + 6,
+                        centerY - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent() + 4,
                         mComplicationTextPaint);
+                shortTextY = centerY - 4;
             }
+
+            canvas.drawText(shortText.getText(getApplicationContext(), currentTimeMillis).toString(),
+                    centerX,
+                    shortTextY,
+                    mComplicationPrimaryTextPaint);
         }
 
         private void drawIconComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
@@ -679,8 +686,10 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             } else {
                 icon = data.getIcon();
+                icon = data.getSmallImage();
             }
             if (icon != null) {
+                Log.d("LINE", "icon exists!");
                 icon.setTint(Color.RED);
                 drawable = icon.loadDrawable(getApplicationContext());
             }
