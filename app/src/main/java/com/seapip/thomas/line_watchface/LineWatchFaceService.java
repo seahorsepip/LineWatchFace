@@ -68,11 +68,6 @@ import java.util.concurrent.Executor;
 import static android.support.wearable.watchface.WatchFaceStyle.AMBIENT_PEEK_MODE_VISIBLE;
 import static android.support.wearable.watchface.WatchFaceStyle.KEY_VIEW_PROTECTION_MODE;
 
-/**
- * Analog watch face with a ticking second hand. In ambient mode, the second hand isn't
- * shown. On devices with low-bit ambient mode, the hands are drawn without anti-aliasing in ambient
- * mode.
- */
 public class LineWatchFaceService extends CanvasWatchFaceService {
 
     // Left and right dial supported types.

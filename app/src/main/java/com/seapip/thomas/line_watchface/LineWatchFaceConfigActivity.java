@@ -8,6 +8,7 @@ import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.support.annotation.Dimension;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.complications.ComplicationHelperActivity;
@@ -19,6 +20,7 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -138,6 +140,9 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                 getDrawable(notificationIndicator == NotificationIndicator.NONE ? R.drawable.ic_notification_disabled: R.drawable.ic_notification),
                 null,
                 notificationIndicator.toString()));
+        items.add(new ConfigurationItemModel("Time format",
+                getDrawable(R.drawable.ic_time_format),
+                new Intent(Settings.ACTION_DATE_SETTINGS)));
         //TODO: Add background setting
         /*
         items.add(new ConfigurationItemModel("Background",
