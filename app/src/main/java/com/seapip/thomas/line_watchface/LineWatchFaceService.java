@@ -24,13 +24,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
@@ -55,7 +55,6 @@ import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
@@ -224,14 +223,14 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mComplicationArcValuePaint.setColor(mSecondaryColor);
             mComplicationArcValuePaint.setStrokeWidth(4f);
             mComplicationArcValuePaint.setAntiAlias(true);
-            mComplicationArcValuePaint.setStrokeCap(Paint.Cap.BUTT);
+            mComplicationArcValuePaint.setStrokeCap(Paint.Cap.SQUARE);
             mComplicationArcValuePaint.setStyle(Paint.Style.STROKE);
 
             mComplicationArcPaint = new Paint();
             mComplicationArcPaint.setColor(mTertiaryColor);
             mComplicationArcPaint.setStrokeWidth(4f);
             mComplicationArcPaint.setAntiAlias(true);
-            mComplicationArcPaint.setStrokeCap(Paint.Cap.BUTT);
+            mComplicationArcPaint.setStrokeCap(Paint.Cap.SQUARE);
             mComplicationArcPaint.setStyle(Paint.Style.STROKE);
 
 
@@ -588,7 +587,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             float centerX = mCenterX + mCenterX / 4 + 10;
             float centerY = mCenterY + mCenterY / 4 + 10;
             float radius = mCenterX / 2;
-
             if (!mIsRound) {
                 radius *= 1.2f;
             }
@@ -602,41 +600,37 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     centerY + radius);
             mComplicationTapBoxes[id] = tapBox;
 
-            float offset = 0.019f * radius;
+            Bitmap arcBitmap = Bitmap.createBitmap((int) radius * 2 + 4, (int) radius * 2 + 4, Bitmap.Config.ARGB_8888);
+            Canvas arcCanvas = new Canvas(arcBitmap);
+            Path path = new Path();
+            path.addArc(2, 2, radius * 2 + 2, radius * 2 + 2,
+                    -90 + (val - min) / (max - min) * 270,
+                    270 - (val - min) / (max - min) * 270);
 
-            if (val < max) {
-                canvas.drawArc(tapBox,
-                        -90 + (val - min) / (max - min) * 270 + offset,
-                        270 - (val - min) / (max - min) * 270 - offset, false, mComplicationArcPaint);
-            }
-            float valueStartAngle = startAngle;
-            if (val == min) {
-                valueStartAngle -= offset;
-                offset *= 2;
-            }
-            canvas.drawArc(tapBox,
-                    valueStartAngle,
-                    (val - min) / (max - min) * 270 + offset, false, mComplicationArcValuePaint);
             int complicationSteps = 10;
             for (int tickIndex = 1; tickIndex < complicationSteps; tickIndex++) {
-                if (tickIndex != (val - min) / (max - min) * complicationSteps) {
-                    float tickRot = (float) (tickIndex * Math.PI * 3 / 2 / complicationSteps - startAngle / 180 * Math.PI - Math.PI / 2);
-                    float innerX = (float) Math.sin(tickRot) * (radius - 4 - (0.05f * mCenterX));
-                    float innerY = (float) -Math.cos(tickRot) * (radius - 4 - (0.05f * mCenterX));
-                    float outerX = (float) Math.sin(tickRot) * (radius - 4);
-                    float outerY = (float) -Math.cos(tickRot) * (radius - 4);
-                    canvas.drawLine(centerX + innerX, centerY + innerY,
-                            centerX + outerX, centerY + outerY, mTickPaint);
-                }
+                float tickRot = (float) (tickIndex * Math.PI * 3 / 2 / complicationSteps - startAngle / 180 * Math.PI - Math.PI / 2);
+                float innerX = (float) Math.sin(tickRot) * (radius - 4 - (0.05f * mCenterX));
+                float innerY = (float) -Math.cos(tickRot) * (radius - 4 - (0.05f * mCenterX));
+                float outerX = (float) Math.sin(tickRot) * (radius - 4);
+                float outerY = (float) -Math.cos(tickRot) * (radius - 4);
+                path.moveTo(radius + innerX + 2, radius + innerY + 2);
+                path.lineTo(radius + outerX + 2, radius + outerY + 2);
             }
+            arcCanvas.drawPath(path, mComplicationArcPaint);
 
             float valRot = (float) ((val - min) * Math.PI * 3 / 2 / (max - min) - startAngle / 180 * Math.PI - Math.PI / 2);
-            float innerX = (float) Math.sin(valRot) * (radius - (0.15f * mCenterX));
-            float innerY = (float) -Math.cos(valRot) * (radius - (0.15f * mCenterX));
-            float outerX = (float) Math.sin(valRot) * (radius - 4);
-            float outerY = (float) -Math.cos(valRot) * (radius - 4);
-            canvas.drawLine(centerX + innerX, centerY + innerY,
-                    centerX + outerX, centerY + outerY, mHourTickPaint);
+            Path valuePath = new Path();
+            valuePath.addArc(2, 2, radius * 2 + 2, radius * 2 + 2,
+                    -90, (val - min) / (max - min) * 270 + 0.0001f);
+            valuePath.lineTo((float) Math.sin(valRot) * (radius - (0.15f * mCenterX)) + radius + 2, (float) -Math.cos(valRot) * (radius - (0.15f * mCenterX)) + radius + 2);
+            mComplicationArcValuePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+            arcCanvas.drawPath(valuePath, mComplicationArcValuePaint);
+            mComplicationArcValuePaint.setXfermode(null);
+            arcCanvas.drawPath(valuePath, mComplicationArcValuePaint);
+
+            canvas.drawBitmap(arcBitmap, centerX - radius - 2, centerY - radius - 2, null);
+
 
             mComplicationTextPaint.setTextAlign(Paint.Align.RIGHT);
             canvas.drawText(String.valueOf(Math.round(min)),
@@ -919,7 +913,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                         canvas.drawLine(1, mCenterY * 2 - 4, 1, Math.min(mCenterY * 2 - 4, mCenterY * 2 - mCenterY * 2 * ((percentage - 0.625f) / 0.25f) + 4), mSecondPaint);
                     }
                     if (percentage > 0.875) {//gap
-                        canvas.drawLine(4, 1, Math.max(4, (mCenterX - 1)  * ((percentage - 0.875f) / 0.125f)), 1, mSecondPaint);
+                        canvas.drawLine(4, 1, Math.max(4, (mCenterX - 1) * ((percentage - 0.875f) / 0.125f)), 1, mSecondPaint);
                     }
                 }
             }
