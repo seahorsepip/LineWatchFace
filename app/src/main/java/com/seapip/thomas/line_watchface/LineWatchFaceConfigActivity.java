@@ -10,10 +10,13 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.annotation.Dimension;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
+import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.view.WearableRecyclerView;
 import android.util.Log;
 import android.view.View;
@@ -23,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
 
 /**
  * The watch-side config activity for {@link LineWatchFaceService}, which
@@ -44,6 +48,28 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         mAdapter.setListener(this);
         mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
         mWearableRecyclerView.setAdapter(mAdapter);
+
+        Executor executor = new Executor() {
+            @Override
+            public void execute(@NonNull Runnable command) {
+            }
+        };
+
+        ProviderInfoRetriever.OnProviderInfoReceivedCallback callback = new ProviderInfoRetriever.OnProviderInfoReceivedCallback() {
+            @Override
+            public void onProviderInfoReceived(int i, @Nullable ComplicationProviderInfo complicationProviderInfo) {
+                Log.d("LINE", complicationProviderInfo.providerName);
+            }
+        };
+
+        ProviderInfoRetriever providerInfoRetriever = new ProviderInfoRetriever(getApplicationContext(), executor);
+
+        providerInfoRetriever.init();
+        providerInfoRetriever.retrieveProviderInfo(callback,
+                new ComponentName(
+                        getApplicationContext(),
+                        LineWatchFaceService.class)
+                , LineWatchFaceService.COMPLICATION_IDS);
     }
 
     @Override
@@ -54,7 +80,6 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         String value = text.getText().toString();
         SharedPreferences.Editor mEditor = mPrefs.edit();
         if (resultCode == RESULT_OK) {
-            Log.d("LINE", String.valueOf(position));
             switch (position) {
                 case 0:
                 case 1:
