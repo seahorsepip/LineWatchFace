@@ -269,7 +269,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mSecondPaint.setColor(mSecondaryColor);
             mSecondPaint.setStrokeWidth(6f);
             mSecondPaint.setAntiAlias(true);
-            mSecondPaint.setStrokeCap(Paint.Cap.SQUARE);
+            mSecondPaint.setStrokeCap(Paint.Cap.BUTT);
             mSecondPaint.setStyle(Paint.Style.STROKE);
 
             mHourTickPaint = new Paint();
@@ -521,7 +521,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                         Drawable drawable = largeImage.loadDrawable(getApplicationContext());
                         if (drawable != null) {
                             BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
-                            switch (backgroundEffect){
+                            switch (backgroundEffect) {
                                 case BLUR:
                                 case DARKEN_BLUR:
                                     drawable = convertToBlur(drawable, 10);
@@ -531,7 +531,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                             }
                             drawable.setBounds(0, 0, (int) mCenterX * 2, (int) mCenterY * 2);
                             drawable.draw(canvas);
-                            switch (backgroundEffect){
+                            switch (backgroundEffect) {
                                 case DARKEN:
                                 case DARKEN_BLUR:
                                     canvas.drawRect(0, 0, mCenterX * 2, mCenterY * 2, mBackgroundOverlayPaint);
@@ -902,22 +902,24 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if (!mAmbient) {
                 float percentage = milliseconds / 60000f;
                 if (mIsRound) {
+                    mSecondPaint.setStrokeCap(Paint.Cap.SQUARE);
                     canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.7f, 360 * percentage, false, mSecondPaint);
                 } else {
+                    mSecondPaint.setStrokeCap(Paint.Cap.BUTT);
                     if (percentage > 0) {
-                        canvas.drawLine(mCenterX + 1, 1, mCenterX + mCenterX * (percentage / 0.125f), 1, mSecondPaint);
+                        canvas.drawLine(mCenterX - 2, 1, mCenterX + mCenterX * (percentage / 0.125f), 1, mSecondPaint);
                     }
                     if (percentage > 0.125) {
-                        canvas.drawLine(mCenterX * 2 - 1, 1, mCenterX * 2 - 1, mCenterY * 2 * ((percentage - 0.125f) / 0.25f) - 1, mSecondPaint);
+                        canvas.drawLine(mCenterX * 2 - 1, 4, mCenterX * 2 - 1, Math.max(4, mCenterY * 2 * ((percentage - 0.125f) / 0.25f) + 7), mSecondPaint);
                     }
                     if (percentage > 0.375) {
-                        canvas.drawLine(mCenterX * 2 - 1, mCenterY * 2 - 1, mCenterX * 2 - mCenterX * 2 * ((percentage - 0.375f) / 0.25f) + 1, mCenterY * 2 - 1, mSecondPaint);
+                        canvas.drawLine(mCenterX * 2 - 4, mCenterY * 2 - 1, Math.min(mCenterX * 2 - 4, mCenterX * 2 - mCenterX * 2 * ((percentage - 0.375f) / 0.25f) + 7), mCenterY * 2 - 1, mSecondPaint);
                     }
-                    if (percentage > 0.625) {
-                        canvas.drawLine(1, mCenterY * 2 - 1, 1, mCenterY * 2 - mCenterY * 2 * ((percentage - 0.625f) / 0.25f) + 1, mSecondPaint);
+                    if (percentage > 0.625) {//overlap
+                        canvas.drawLine(1, mCenterY * 2 - 4, 1, Math.min(mCenterY * 2 - 4, mCenterY * 2 - mCenterY * 2 * ((percentage - 0.625f) / 0.25f) + 4), mSecondPaint);
                     }
-                    if (percentage > 0.875) {
-                        canvas.drawLine(1, 1, mCenterX * ((percentage - 0.875f) / 0.125f) - 1, 1, mSecondPaint);
+                    if (percentage > 0.875) {//gap
+                        canvas.drawLine(4, 1, Math.max(4, (mCenterX - 1)  * ((percentage - 0.875f) / 0.125f)), 1, mSecondPaint);
                     }
                 }
             }
