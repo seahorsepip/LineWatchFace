@@ -53,6 +53,14 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
         this.itemSelectedListener = itemSelectedListener;
     }
 
+    public void update(ArrayList<ConfigurationItemModel> modelList){
+        data.clear();
+        for (ConfigurationItemModel model: modelList) {
+            data.add(model);
+        }
+        notifyDataSetChanged();
+    }
+
     @Override
     public ConfigurationAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ViewHolder(LayoutInflater.from(parent.getContext())
