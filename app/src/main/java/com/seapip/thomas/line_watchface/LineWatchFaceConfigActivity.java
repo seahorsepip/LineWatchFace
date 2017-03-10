@@ -48,43 +48,6 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         mAdapter.setListener(this);
         mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
         mWearableRecyclerView.setAdapter(mAdapter);
-
-        Uhhh();
-    }
-
-    protected void Uhhh() {
-        Executor executor = new Executor() {
-            @Override
-            public void execute(@NonNull Runnable command) {
-                Log.d("LINE", "Please?");
-            }
-        };
-
-        ProviderInfoRetriever.OnProviderInfoReceivedCallback callback = new ProviderInfoRetriever.OnProviderInfoReceivedCallback() {
-            @Override
-            public void onProviderInfoReceived(int i, @Nullable ComplicationProviderInfo complicationProviderInfo) {
-                Log.d("LINE", String.valueOf(i));
-                Log.d("LINE", complicationProviderInfo.providerName);
-            }
-
-            @Override
-            public void onRetrievalFailed() {
-                super.onRetrievalFailed();
-                Log.d("LINE", "FUCK");
-            }
-        };
-
-        ProviderInfoRetriever providerInfoRetriever = new ProviderInfoRetriever(getApplicationContext(), executor);
-
-        providerInfoRetriever.init();
-
-        providerInfoRetriever.retrieveProviderInfo(callback,
-                new ComponentName(
-                        getApplicationContext(),
-                        LineWatchFaceService.class)
-                , LineWatchFaceService.COMPLICATION_IDS);
-
-        providerInfoRetriever.release();
     }
 
     @Override
