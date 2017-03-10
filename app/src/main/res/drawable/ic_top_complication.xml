@@ -3,7 +3,13 @@
     <path android:fillAlpha="0.2" android:fillColor="#ffffff"
         android:pathData="M30,30m-30,0a30,30 0,1 1,60 0a30,30 0,1 1,-60 0"
         android:strokeAlpha="0.2" android:strokeColor="#00000000" android:strokeWidth="1"/>
+    <path android:fillAlpha="0.3" android:fillColor="#ffffff"
+        android:pathData="M37,30m4,0a4,4 0,1 0,-8 0a4,4 0,1 0,8 0"
+        android:strokeAlpha="0.3" android:strokeColor="#00000000" android:strokeWidth="1"/>
+    <path android:fillAlpha="0.3" android:fillColor="#ffffff"
+        android:pathData="M23,30m4,0a4,4 0,1 0,-8 0a4,4 0,1 0,8 0"
+        android:strokeAlpha="0.3" android:strokeColor="#00000000" android:strokeWidth="1"/>
     <path android:fillAlpha="1" android:fillColor="#ffffff"
-        android:pathData="M30,15A15,15 0,0 0,15 30A15,15 0,0 0,30 45A15,15 0,0 0,45 30A15,15 0,0 0,30 15zM30,19A4,4 0,0 1,34 23A4,4 0,0 1,30 27A4,4 0,0 1,26 23A4,4 0,0 1,30 19zM23,26A4,4 0,0 1,27 30A4,4 0,0 1,23 34A4,4 0,0 1,19 30A4,4 0,0 1,23 26zM37,26A4,4 0,0 1,41 30A4,4 0,0 1,37 34A4,4 0,0 1,33 30A4,4 0,0 1,37 26z"
+        android:pathData="M30,23m4,0a4,4 0,1 0,-8 0a4,4 0,1 0,8 0"
         android:strokeAlpha="1" android:strokeColor="#00000000" android:strokeWidth="1"/>
 </vector>

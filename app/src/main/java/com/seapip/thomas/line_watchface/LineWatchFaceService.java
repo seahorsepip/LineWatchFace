@@ -23,30 +23,29 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.Icon;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
-import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ComplicationText;
-import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
@@ -56,30 +55,32 @@ import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
-import android.widget.Switch;
-import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
-import java.util.Locale;
 import java.util.TimeZone;
-import java.util.concurrent.Executor;
-
-import static android.support.wearable.watchface.WatchFaceStyle.AMBIENT_PEEK_MODE_VISIBLE;
-import static android.support.wearable.watchface.WatchFaceStyle.KEY_VIEW_PROTECTION_MODE;
 
 public class LineWatchFaceService extends CanvasWatchFaceService {
 
     // Left and right dial supported types.
     public static final int[][] COMPLICATION_SUPPORTED_TYPES = {
-            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_LONG_TEXT, ComplicationData.TYPE_SHORT_TEXT},
-            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_LONG_TEXT, ComplicationData.TYPE_SHORT_TEXT}
+            {ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_LARGE_IMAGE}
     };
     // Unique IDs for each complication.
-    private static final int LEFT_DIAL_COMPLICATION = 0;
-    private static final int RIGHT_DIAL_COMPLICATION = 1;
+    private static final int TOP_DIAL_COMPLICATION = 0;
+    private static final int LEFT_DIAL_COMPLICATION = 1;
+    private static final int RIGHT_DIAL_COMPLICATION = 2;
+    private static final int BACKGROUND_COMPLICATION = 3;
     // Left and right complication IDs as array for Complication API.
-    public static final int[] COMPLICATION_IDS = {LEFT_DIAL_COMPLICATION, RIGHT_DIAL_COMPLICATION};
+    public static final int[] COMPLICATION_IDS = {
+            TOP_DIAL_COMPLICATION,
+            LEFT_DIAL_COMPLICATION,
+            RIGHT_DIAL_COMPLICATION,
+            BACKGROUND_COMPLICATION
+    };
     /*
      * Update rate in milliseconds for interactive mode. We update once a second to advance the
      * second hand.
@@ -140,6 +141,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private int mQuaternaryColor;
         private int mBackgroundColor;
 
+        private Paint mBackgroundOverlayPaint;
         private Paint mHourPaint;
         private Paint mMinutePaint;
         private Paint mSecondPaint;
@@ -150,7 +152,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private Paint mComplicationCirclePaint;
         private Paint mComplicationPrimaryTextPaint;
         private Paint mComplicationTextPaint;
-        private Paint mBackgroundPaint;
         private Paint mNotificationBackgroundPaint;
         private Paint mNotificationCirclePaint;
         private Paint mNotificationTextPaint;
@@ -173,6 +174,8 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private int mUnreadNotificationCount;
         private int mNotificationCount;
 
+        private RectF[] mComplicationTapBoxes = new RectF[COMPLICATION_IDS.length];
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -193,9 +196,9 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mFont = Typeface.create("sans-serif", Typeface.NORMAL);
 
             /* Set defaults for colors */
-            mSecondaryColor = Color.rgb(128, 128, 128);
-            mTertiaryColor = Color.rgb(76, 76, 76);
-            mQuaternaryColor = Color.rgb(36, 36, 36);
+            mSecondaryColor = Color.argb(128, 255, 255, 255);
+            mTertiaryColor = Color.argb(76, 255, 255, 255);
+            mQuaternaryColor = Color.argb(24, 255, 255, 255);
 
             initializeBackground();
             initializeComplication();
@@ -206,8 +209,9 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private void initializeBackground() {
             mBackgroundColor = Color.BLACK;
 
-            mBackgroundPaint = new Paint();
-            mBackgroundPaint.setColor(mBackgroundColor);
+            mBackgroundOverlayPaint = new Paint();
+            int overlayColor = Color.argb(200, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
+            mBackgroundOverlayPaint.setColor(overlayColor);
         }
 
         private void initializeComplication() {
@@ -440,10 +444,10 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     break;
                 case TAP_TYPE_TAP:
                     // The user has completed the tap gesture.
-                    if (mLeftDialTapBox != null && mLeftDialTapBox.contains(x, y)) {
-                        onComplicationTapped(LEFT_DIAL_COMPLICATION);
-                    } else if (mRightDialTapBox != null && mRightDialTapBox.contains(x, y)) {
-                        onComplicationTapped(RIGHT_DIAL_COMPLICATION);
+                    for (int i = 0; i < mComplicationTapBoxes.length; i++) {
+                        if (mComplicationTapBoxes[i] != null && mComplicationTapBoxes[i].contains(x, y)) {
+                            onComplicationTapped(i);
+                        }
                     }
                     break;
             }
@@ -493,70 +497,84 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
-            drawBackground(canvas);
-            drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, true);
-            drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, false);
+            for (RectF tapBox : mComplicationTapBoxes) {
+                tapBox = null;
+            }
+
+            drawBackground(canvas, now, BACKGROUND_COMPLICATION);
+            drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2);
+            drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, mCenterX / 2, mCenterY);
+            drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, mCenterX * 1.5f, mCenterY);
             drawWatchFace(canvas);
             drawNotificationCount(canvas);
         }
 
-        private void drawBackground(Canvas canvas) {
+        private void drawBackground(Canvas canvas, long currentTimeMillis, int id) {
+            ComplicationData complicationData = mActiveComplicationDataSparseArray.get(id);
             canvas.drawColor(mBackgroundColor);
+            if ((complicationData != null) && (complicationData.isActive(currentTimeMillis))) {
+                if (complicationData.getType() == ComplicationData.TYPE_LARGE_IMAGE) {
+                    Icon largeImage = complicationData.getLargeImage();
+                    if (largeImage != null && !(mAmbient && (mBurnInProtection || mLowBitAmbient))) {
+                        Drawable drawable = largeImage.loadDrawable(getApplicationContext());
+                        if (drawable != null) {
+                            if (mAmbient) {
+                                drawable = convertToGrayscale(drawable);
+                            }
+                            drawable.setBounds(0, 0, (int) mCenterX * 2, (int) mCenterY * 2);
+                            drawable.draw(canvas);
+                            canvas.drawRect(0, 0, mCenterX * 2, mCenterY * 2, mBackgroundOverlayPaint);
+                        }
+                    }
+                }
+            }
         }
 
-        private void drawComplication(Canvas canvas, long currentTimeMillis, int id, boolean positionLeft) {
-            ComplicationData complicationData;
-            complicationData = mActiveComplicationDataSparseArray.get(id);
+        private void drawComplication(Canvas canvas, long currentTimeMillis, int id, float centerX, float centerY) {
+            ComplicationData complicationData = mActiveComplicationDataSparseArray.get(id);
 
             if ((complicationData != null) && (complicationData.isActive(currentTimeMillis))) {
                 switch (complicationData.getType()) {
                     case ComplicationData.TYPE_RANGED_VALUE:
-                        Log.d("LINE", "A");
                         drawRangeComplication(canvas,
                                 complicationData,
-                                positionLeft);
+                                id);
                         break;
                     case ComplicationData.TYPE_SMALL_IMAGE:
-                        Log.d("LINE", "C");
-                        drawImageComplication(canvas,
+                        drawSmallImageComplication(canvas,
                                 complicationData,
                                 currentTimeMillis,
-                                positionLeft);
+                                centerX,
+                                centerY,
+                                id);
                         break;
                     case ComplicationData.TYPE_SHORT_TEXT:
-                        Log.d("LINE", "D");
                         drawShortTextComplication(canvas,
                                 complicationData,
                                 currentTimeMillis,
-                                positionLeft);
+                                centerX,
+                                centerY,
+                                id);
+                        break;
+                    case ComplicationData.TYPE_ICON:
+                        drawIconComplication(canvas,
+                                complicationData,
+                                currentTimeMillis,
+                                centerX,
+                                centerY,
+                                id);
                         break;
                 }
             }
         }
 
-        private RectF setTapBox(float centerX, float centerY, float radius, boolean positionLeft) {
-            RectF tapBox = new RectF(centerX - radius,
-                    centerY - radius,
-                    centerX + radius,
-                    centerY + radius);
-
-            if (positionLeft) {
-                mLeftDialTapBox = tapBox;
-            } else {
-                mRightDialTapBox = tapBox;
-            }
-
-            return tapBox;
-
-        }
-
-        private void drawRangeComplication(Canvas canvas, ComplicationData data, boolean positionLeft) {
+        private void drawRangeComplication(Canvas canvas, ComplicationData data, int id) {
             float min = data.getMinValue();
             float max = data.getMaxValue();
             float val = data.getValue();
 
-            float centerX = mCenterX + (mCenterX / 4 + 10) * (positionLeft ? -1 : 1);
-            float centerY = mCenterY + (mCenterY / 4 + 10) * (positionLeft ? -1 : 1);
+            float centerX = mCenterX + mCenterX / 4 + 10;
+            float centerY = mCenterY + mCenterY / 4 + 10;
             float radius = mCenterX / 2;
 
             if (!mIsRound) {
@@ -564,19 +582,23 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
             radius -= 20;
 
-            float startAngle = positionLeft ? 90 : -90;
+            float startAngle = -90;
 
-            RectF tapBox = setTapBox(centerX, centerY, radius, positionLeft);
+            RectF tapBox = new RectF(centerX - radius,
+                    centerY - radius,
+                    centerX + radius,
+                    centerY + radius);
+            mComplicationTapBoxes[id] = tapBox;
 
             if (val < max) {
                 canvas.drawArc(tapBox,
-                        startAngle + (val - min) / (max - min) * 270,
-                        270 - (val - min) / (max - min) * 270, false, mComplicationArcPaint);
+                        -90 + (val - min) / (max - min) * 270 + 3.8f,
+                        270 - (val - min) / (max - min) * 270 - 3.8f, false, mComplicationArcPaint);
             }
             if (val > min) {
                 canvas.drawArc(tapBox,
                         startAngle,
-                        (val - min) / (max - min) * 270 - 2, false, mComplicationArcValuePaint);
+                        (val - min) / (max - min) * 270 - 3.8f, false, mComplicationArcValuePaint);
             }
             int complicationSteps = 10;
             for (int tickIndex = 1; tickIndex < complicationSteps; tickIndex++) {
@@ -599,44 +621,49 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             canvas.drawLine(centerX + innerX, centerY + innerY,
                     centerX + outerX, centerY + outerY, mHourTickPaint);
 
-            mComplicationTextPaint.setTextAlign(positionLeft ? Paint.Align.LEFT : Paint.Align.RIGHT);
+            mComplicationTextPaint.setTextAlign(Paint.Align.RIGHT);
             canvas.drawText(String.valueOf(Math.round(min)),
-                    centerX + 6 * (positionLeft ? 1 : -1),
-                    centerY + (radius + 4) * (positionLeft ? 1 : -1) - (positionLeft ? 0 : mComplicationTextPaint.descent() + mComplicationTextPaint.ascent()),
+                    centerX + -6,
+                    centerY - radius - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent(),
                     mComplicationTextPaint);
 
-            mComplicationTextPaint.setTextAlign(positionLeft ? Paint.Align.RIGHT : Paint.Align.LEFT);
+            mComplicationTextPaint.setTextAlign(Paint.Align.LEFT);
             canvas.drawText(String.valueOf(Math.round(max)),
-                    centerX + (radius + 4) * (positionLeft ? 1 : -1),
-                    centerY + 6 * (positionLeft ? 1 : -1) - (positionLeft ? mComplicationTextPaint.descent() + mComplicationTextPaint.ascent() : 0),
+                    centerX - radius - 4,
+                    centerY - 6,
                     mComplicationTextPaint);
 
-            Drawable drawable = null;
-            Icon icon = data.getIcon();
-            if (mAmbient && mBurnInProtection) {
-                icon = data.getBurnInProtectionIcon();
-            }
+            Icon icon = mAmbient && mBurnInProtection ? data.getBurnInProtectionIcon() : data.getIcon();
             if (icon != null) {
                 icon.setTint(mSecondaryColor);
-                drawable = icon.loadDrawable(getApplicationContext());
-            }
-            if (drawable != null) {
-                int size = (int) Math.round(0.15 * mCenterX);
-                drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
-                drawable.draw(canvas);
+                Drawable drawable = icon.loadDrawable(getApplicationContext());
+                if (drawable != null) {
+                    int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
+                    drawable.draw(canvas);
+                }
+            } else {
+                mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
+                canvas.drawText(String.valueOf(Math.round(val)),
+                        centerX,
+                        centerY - (mComplicationPrimaryTextPaint.descent() + mComplicationPrimaryTextPaint.ascent()) / 2,
+                        mComplicationPrimaryTextPaint);
             }
         }
 
-        private void drawShortTextComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
+        private void drawShortTextComplication(Canvas canvas, ComplicationData data,
+                                               long currentTimeMillis, float centerX,
+                                               float centerY, int id) {
             ComplicationText title = data.getShortTitle();
             ComplicationText shortText = data.getShortText();
             Icon icon = mBurnInProtection && mAmbient ? data.getBurnInProtectionIcon() : data.getIcon();
 
-            float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
-            float centerY = mCenterY;
-            float radius = mCenterX / 4.2f;
+            float radius = mCenterX / 4;
 
-            setTapBox(centerX, centerY, radius, positionLeft);
+            mComplicationTapBoxes[id] = new RectF(centerX - radius,
+                    centerY - radius,
+                    centerX + radius,
+                    centerY + radius);
 
             canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
 
@@ -648,7 +675,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if (icon != null) {
                 icon.setTint(mSecondaryColor);
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
-                if(drawable != null) {
+                if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 2), Math.round(centerX + size / 2), Math.round(centerY - 2));
                     drawable.draw(canvas);
@@ -668,74 +695,55 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     mComplicationPrimaryTextPaint);
         }
 
-        private void drawIconComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
-            float val = data.getValue();
+        private void drawIconComplication(Canvas canvas, ComplicationData data,
+                                          long currentTimeMillis, float centerX,
+                                          float centerY, int id) {
+            float radius = mCenterX / 4;
 
-            float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
-            float centerY = mCenterY;
-            float radius = mCenterX / 3 - 10;
+            mComplicationTapBoxes[id] = new RectF(centerX - radius,
+                    centerY - radius,
+                    centerX + radius,
+                    centerY + radius);
 
-            setTapBox(centerX, centerY, radius, positionLeft);
-
-            canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
-
-            Drawable drawable = null;
-            Icon icon;
-            if (mAmbient) {
-                icon = data.getBurnInProtectionIcon();
-
-            } else {
-                icon = data.getIcon();
-                icon = data.getSmallImage();
-            }
+            Icon icon = mAmbient && mBurnInProtection ? data.getBurnInProtectionIcon() : data.getSmallImage();
             if (icon != null) {
-                Log.d("LINE", "icon exists!");
-                icon.setTint(Color.RED);
-                drawable = icon.loadDrawable(getApplicationContext());
+                Drawable drawable = icon.loadDrawable(getApplicationContext());
+                if (drawable != null) {
+                    int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
+                    drawable.draw(canvas);
+                    canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+                }
             }
-            if (drawable != null) {
-                //Log.d("LINE", "drawable exists!");
-                int size = (int) Math.round(0.15 * mCenterX);
-                //drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 6), Math.round(centerX + size / 2), Math.round(centerY + 6));
-                drawable.setBounds(100, 100, 400, 400);
-                drawable.draw(canvas);
-            }
-
-            mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText(String.valueOf(Math.round(val)),
-                    centerX,
-                    centerY - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent() + 6,
-                    mComplicationPrimaryTextPaint);
         }
 
-        private void drawImageComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, boolean positionLeft) {
-            float centerX = mCenterX + (mCenterX / 2) * (positionLeft ? -1 : 1);
-            float centerY = mCenterY;
-            float radius = mCenterX / 3 - 10;
+        private void drawSmallImageComplication(Canvas canvas, ComplicationData data,
+                                                long currentTimeMillis, float centerX,
+                                                float centerY, int id) {
+            float radius = mCenterX / 4;
 
+            mComplicationTapBoxes[id] = new RectF(centerX - radius,
+                    centerY - radius,
+                    centerX + radius,
+                    centerY + radius);
 
-            setTapBox(centerX, centerY, radius, positionLeft);
-
-            Icon icon = null;
-            Drawable drawable = null;
-            icon = data.getSmallImage();
-            if (icon != null) {
-                drawable = icon.loadDrawable(getApplicationContext());
-            }
-            if (mAmbient) {
-                drawable = convertToGrayscale(drawable);
-                if (mBurnInProtection) {
-                    drawable = null;
+            Icon smallImage = data.getSmallImage();
+            if (smallImage != null && !(mAmbient && mBurnInProtection)) {
+                Drawable drawable = smallImage.loadDrawable(getApplicationContext());
+                if (drawable != null) {
+                    if (mAmbient) {
+                        drawable = convertToGrayscale(drawable);
+                    }
+                    int size = Math.round(radius - mComplicationCirclePaint.getStrokeWidth() / 2);
+                    if (data.getImageStyle() == ComplicationData.IMAGE_STYLE_ICON) {
+                        size = (int) Math.round(0.15 * mCenterX);
+                    } else {
+                        drawable = convertToCircle(drawable);
+                    }
+                    drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
+                    drawable.draw(canvas);
+                    canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
                 }
-            }
-            if (drawable != null) {
-                int size = Math.round(radius);
-                if (data.getImageStyle() == ComplicationData.IMAGE_STYLE_ICON) {
-                    size = (int) Math.round(0.25 * mCenterX);
-                }
-                drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
-                canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
-                drawable.draw(canvas);
             }
         }
 
@@ -748,6 +756,43 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             drawable.setColorFilter(filter);
 
             return drawable;
+        }
+
+        private Bitmap drawableToBitmap(Drawable drawable) {
+            if (drawable instanceof BitmapDrawable) {
+                return ((BitmapDrawable) drawable).getBitmap();
+            }
+
+            int width = drawable.getIntrinsicWidth();
+            width = width > 0 ? width : 1;
+            int height = drawable.getIntrinsicHeight();
+            height = height > 0 ? height : 1;
+
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            drawable.draw(canvas);
+
+            return bitmap;
+        }
+
+        private Drawable convertToCircle(Drawable drawable) {
+            Bitmap bitmap = drawableToBitmap(drawable);
+            Bitmap output = Bitmap.createBitmap(bitmap.getWidth(),
+                    bitmap.getHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(output);
+            final int color = 0xff424242;
+            final Paint paint = new Paint();
+            final Rect rect = new Rect(0, 0, bitmap.getWidth(),
+                    bitmap.getHeight());
+
+            paint.setAntiAlias(true);
+            canvas.drawARGB(0, 0, 0, 0);
+            canvas.drawCircle(bitmap.getWidth() / 2,
+                    bitmap.getHeight() / 2, bitmap.getWidth() / 2, paint);
+            paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC_IN));
+            canvas.drawBitmap(bitmap, rect, rect, paint);
+            return new BitmapDrawable(output);
         }
 
         private void drawWatchFace(Canvas canvas) {
@@ -820,7 +865,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if (!mAmbient) {
                 float percentage = milliseconds / 60000f;
                 if (mIsRound) {
-                    canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.8f, 360 * percentage, false, mSecondPaint);
+                    canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.7f, 360 * percentage, false, mSecondPaint);
                 } else {
                     if (percentage > 0) {
                         canvas.drawLine(mCenterX + 1, 1, mCenterX + mCenterX * (percentage / 0.125f), 1, mSecondPaint);
