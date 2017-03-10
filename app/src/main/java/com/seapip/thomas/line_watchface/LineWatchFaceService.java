@@ -24,6 +24,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
@@ -43,6 +44,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicBlur;
 import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationText;
@@ -168,9 +173,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private boolean mBurnInProtection;
         private boolean mIsRound;
 
-        private RectF mLeftDialTapBox;
-        private RectF mRightDialTapBox;
-
         private int mUnreadNotificationCount;
         private int mNotificationCount;
 
@@ -210,7 +212,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mBackgroundColor = Color.BLACK;
 
             mBackgroundOverlayPaint = new Paint();
-            int overlayColor = Color.argb(200, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
+            int overlayColor = Color.argb(128, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
             mBackgroundOverlayPaint.setColor(overlayColor);
         }
 
@@ -222,14 +224,14 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mComplicationArcValuePaint.setColor(mSecondaryColor);
             mComplicationArcValuePaint.setStrokeWidth(4f);
             mComplicationArcValuePaint.setAntiAlias(true);
-            mComplicationArcValuePaint.setStrokeCap(Paint.Cap.SQUARE);
+            mComplicationArcValuePaint.setStrokeCap(Paint.Cap.BUTT);
             mComplicationArcValuePaint.setStyle(Paint.Style.STROKE);
 
             mComplicationArcPaint = new Paint();
             mComplicationArcPaint.setColor(mTertiaryColor);
             mComplicationArcPaint.setStrokeWidth(4f);
             mComplicationArcPaint.setAntiAlias(true);
-            mComplicationArcPaint.setStrokeCap(Paint.Cap.SQUARE);
+            mComplicationArcPaint.setStrokeCap(Paint.Cap.BUTT);
             mComplicationArcPaint.setStyle(Paint.Style.STROKE);
 
 
@@ -424,7 +426,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mComplicationTextPaint.setTextSize(width / 20);
             mNotificationTextPaint.setTextSize(width / 25);
 
-            int gradientColor = Color.argb(200, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
+            int gradientColor = Color.argb(128, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
             Shader shader = new LinearGradient(0, height - 100, 0, height, Color.TRANSPARENT, gradientColor, Shader.TileMode.CLAMP);
             mNotificationBackgroundPaint.setShader(shader);
         }
@@ -518,12 +520,22 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     if (largeImage != null && !(mAmbient && (mBurnInProtection || mLowBitAmbient))) {
                         Drawable drawable = largeImage.loadDrawable(getApplicationContext());
                         if (drawable != null) {
+                            BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
+                            switch (backgroundEffect){
+                                case BLUR:
+                                case DARKEN_BLUR:
+                                    drawable = convertToBlur(drawable, 10);
+                            }
                             if (mAmbient) {
                                 drawable = convertToGrayscale(drawable);
                             }
                             drawable.setBounds(0, 0, (int) mCenterX * 2, (int) mCenterY * 2);
                             drawable.draw(canvas);
-                            canvas.drawRect(0, 0, mCenterX * 2, mCenterY * 2, mBackgroundOverlayPaint);
+                            switch (backgroundEffect){
+                                case DARKEN:
+                                case DARKEN_BLUR:
+                                    canvas.drawRect(0, 0, mCenterX * 2, mCenterY * 2, mBackgroundOverlayPaint);
+                            }
                         }
                     }
                 }
@@ -590,16 +602,21 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                     centerY + radius);
             mComplicationTapBoxes[id] = tapBox;
 
+            float offset = 0.019f * radius;
+
             if (val < max) {
                 canvas.drawArc(tapBox,
-                        -90 + (val - min) / (max - min) * 270 + 3.8f,
-                        270 - (val - min) / (max - min) * 270 - 3.8f, false, mComplicationArcPaint);
+                        -90 + (val - min) / (max - min) * 270 + offset,
+                        270 - (val - min) / (max - min) * 270 - offset, false, mComplicationArcPaint);
             }
-            if (val > min) {
-                canvas.drawArc(tapBox,
-                        startAngle,
-                        (val - min) / (max - min) * 270 - 3.8f, false, mComplicationArcValuePaint);
+            float valueStartAngle = startAngle;
+            if (val == min) {
+                valueStartAngle -= offset;
+                offset *= 2;
             }
+            canvas.drawArc(tapBox,
+                    valueStartAngle,
+                    (val - min) / (max - min) * 270 + offset, false, mComplicationArcValuePaint);
             int complicationSteps = 10;
             for (int tickIndex = 1; tickIndex < complicationSteps; tickIndex++) {
                 if (tickIndex != (val - min) / (max - min) * complicationSteps) {
@@ -616,8 +633,8 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             float valRot = (float) ((val - min) * Math.PI * 3 / 2 / (max - min) - startAngle / 180 * Math.PI - Math.PI / 2);
             float innerX = (float) Math.sin(valRot) * (radius - (0.15f * mCenterX));
             float innerY = (float) -Math.cos(valRot) * (radius - (0.15f * mCenterX));
-            float outerX = (float) Math.sin(valRot) * radius;
-            float outerY = (float) -Math.cos(valRot) * radius;
+            float outerX = (float) Math.sin(valRot) * (radius - 4);
+            float outerY = (float) -Math.cos(valRot) * (radius - 4);
             canvas.drawLine(centerX + innerX, centerY + innerY,
                     centerX + outerX, centerY + outerY, mHourTickPaint);
 
@@ -795,6 +812,26 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             return new BitmapDrawable(output);
         }
 
+        private Drawable convertToBlur(Drawable drawable, float radius) {
+            Bitmap bitmap = drawableToBitmap(drawable);
+            int width = Math.round(bitmap.getWidth() * 0.5f);
+            int height = Math.round(bitmap.getHeight() * 0.5f);
+
+            Bitmap input = Bitmap.createScaledBitmap(bitmap, width, height, false);
+            Bitmap output = Bitmap.createBitmap(input);
+
+            RenderScript rs = RenderScript.create(getApplicationContext());
+            ScriptIntrinsicBlur theIntrinsic = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+            Allocation tmpIn = Allocation.createFromBitmap(rs, input);
+            Allocation tmpOut = Allocation.createFromBitmap(rs, output);
+            theIntrinsic.setRadius(radius);
+            theIntrinsic.setInput(tmpIn);
+            theIntrinsic.forEach(tmpOut);
+            tmpOut.copyTo(output);
+
+            return new BitmapDrawable(output);
+        }
+
         private void drawWatchFace(Canvas canvas) {
             mPrimaryColor = mPrefs.getInt("setting_color_value", Color.parseColor("#18FFFF"));
             if (!mAmbient) {
@@ -900,7 +937,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
         private void drawNotificationCount(Canvas canvas) {
             int count = 0;
-            NotificationIndicator notificationCount = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.NONE.getValue()));
+            NotificationIndicator notificationCount = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
             switch (notificationCount) {
                 case UNREAD:
                     count = mUnreadNotificationCount;

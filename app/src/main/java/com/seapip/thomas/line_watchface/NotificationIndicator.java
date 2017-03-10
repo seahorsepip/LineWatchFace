@@ -1,7 +1,7 @@
 package com.seapip.thomas.line_watchface;
 
 public enum NotificationIndicator {
-    NONE(0),
+    DISABLED(0),
     UNREAD(1),
     ALL(2);
 
@@ -28,7 +28,7 @@ public enum NotificationIndicator {
     public String toString() {
         switch (this){
             default:
-            case NONE:
+            case DISABLED:
                 return "Disabled";
             case UNREAD:
                 return "Unread notifications";
