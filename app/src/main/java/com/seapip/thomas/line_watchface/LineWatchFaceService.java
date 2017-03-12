@@ -48,9 +48,7 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
-import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
-import android.support.wearable.complications.ComplicationText;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
@@ -59,6 +57,9 @@ import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
+
+import com.seapip.thomas.line_watchface.ComplicationPolyfill.ComplicationData;
+import com.seapip.thomas.line_watchface.ComplicationPolyfill.ComplicationText;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -218,6 +219,24 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mActiveComplicationDataSparseArray = new SparseArray<>(COMPLICATION_IDS.length);
             setActiveComplications(COMPLICATION_IDS);
 
+            ComplicationData batteryComplication = new ComplicationData();
+            batteryComplication.setType(ComplicationData.TYPE_RANGED_VALUE);
+            batteryComplication.setValue(75);
+            batteryComplication.setMinValue(0);
+            batteryComplication.setMaxValue(100);
+            Icon icon = Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp);
+            batteryComplication.setIcon(icon);
+            batteryComplication.setBurnInProtectionIcon(icon);
+
+
+            ComplicationData dateComplication = new ComplicationData();
+            dateComplication.setType(ComplicationData.TYPE_SHORT_TEXT);
+            dateComplication.setShortText(new ComplicationText("12"));
+            dateComplication.setShortTitle(new ComplicationText("MAR"));
+
+            mActiveComplicationDataSparseArray.put(RIGHT_DIAL_COMPLICATION, batteryComplication);
+            mActiveComplicationDataSparseArray.put(LEFT_DIAL_COMPLICATION, dateComplication);
+
             mComplicationArcValuePaint = new Paint();
             mComplicationArcValuePaint.setColor(mSecondaryColor);
             mComplicationArcValuePaint.setStrokeWidth(4f);
@@ -313,8 +332,9 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         }
 
         /*
-         * Called when there is updated data for a complication id.
+         * TODO: re implement for wear 1.0
          */
+        /*
         @Override
         public void onComplicationDataUpdate(
                 int complicationId, ComplicationData complicationData) {
@@ -322,6 +342,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mActiveComplicationDataSparseArray.put(complicationId, complicationData);
             invalidate();
         }
+        */
 
 
         @Override
@@ -351,7 +372,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if (mAmbient) {
                 mHourPaint.setColor(Color.WHITE);
                 mMinutePaint.setColor(Color.WHITE);
-                if (mLowBitAmbient || mBurnInProtection) {
+                if (mLowBitAmbient) {
+                    mHourTickPaint.setColor(Color.WHITE);
+                    mComplicationPrimaryTextPaint.setColor(Color.WHITE);
+                    mComplicationArcValuePaint.setColor(Color.WHITE);
+                }
+                if (mBurnInProtection) {
                     mHourPaint.setTypeface(mFontLight);
                     mHourPaint.setAntiAlias(false);
                     mMinutePaint.setAntiAlias(false);
@@ -384,16 +410,19 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 mMinutePaint.setColor(mPrimaryColor);
                 mMinutePaint.setAntiAlias(true);
                 mMinutePaint.setStrokeWidth(4f);
+                mHourTickPaint.setColor(mSecondaryColor);
                 mHourTickPaint.setAntiAlias(true);
                 mHourTickPaint.setStrokeWidth(4f);
                 mTickPaint.setAntiAlias(true);
                 mTickPaint.setStrokeWidth(4f);
+                mComplicationArcValuePaint.setColor(mSecondaryColor);
                 mComplicationArcValuePaint.setAntiAlias(true);
                 mComplicationArcValuePaint.setStrokeWidth(4f);
                 mComplicationArcPaint.setAntiAlias(true);
                 mComplicationArcPaint.setStrokeWidth(4f);
                 mComplicationCirclePaint.setAntiAlias(true);
                 mComplicationCirclePaint.setStrokeWidth(3f);
+                mComplicationPrimaryTextPaint.setColor(mSecondaryColor);
                 mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setAntiAlias(true);
@@ -645,7 +674,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             Icon icon = mAmbient && mBurnInProtection ? data.getBurnInProtectionIcon() : data.getIcon();
             if (icon != null) {
-                icon.setTint(mSecondaryColor);
+                icon.setTint(mComplicationArcValuePaint.getColor());
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
@@ -880,6 +909,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 }
 
                 int min = mCalendar.get(Calendar.MINUTE) + 7;
+                min = 17; //For presentation purposes
                 canvas.save();
                 canvas.rotate((float) Math.floor(min / 15) * 90 - 180, mCenterX, mCenterY);
                 float magic = (float) (-1 / Math.tan(-0.25 * Math.PI + (min % 15) * Math.PI / 30 + Math.PI / 60));
@@ -892,7 +922,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
 
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
-            if (!mAmbient) {
+            if (!mAmbient && false) {
                 float percentage = milliseconds / 60000f;
                 if (mIsRound) {
                     mSecondPaint.setStrokeCap(Paint.Cap.SQUARE);

@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.wearable.view.WearableRecyclerView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/recycler_launcher_view"
+<android.support.wearable.view.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:paddingTop="@dimen/settings_padding"
-    android:paddingBottom="@dimen/settings_padding"
-    android:scrollbarStyle="outsideOverlay"
-    android:scrollbars="vertical" />
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:id="@+id/frame_layout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#434343"
+        app:layout_box="left|bottom|right">
+
+        <android.support.wearable.view.WearableListView
+            android:id="@+id/wearable_List"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:dividerHeight="0dp"
+            android:scrollbars="none"></android.support.wearable.view.WearableListView>
+
+    </RelativeLayout>
+</android.support.wearable.view.BoxInsetLayout>

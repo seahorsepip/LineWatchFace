@@ -35,7 +35,7 @@ import java.util.ArrayList;
  * The watch-side config activity for {@link LineWatchFaceService}, which
  * allows for setting complications on the left and right of watch face.
  */
-public class LineWatchFaceConfigColorActivity extends WearableActivity implements ConfigurationAdapter.ItemSelectedListener {
+public class LineWatchFaceConfigColorActivity extends WearableActivity {
 
     private static final int PROVIDER_CHOOSER_REQUEST_CODE = 1;
 
@@ -49,6 +49,7 @@ public class LineWatchFaceConfigColorActivity extends WearableActivity implement
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        /*
         setContentView(R.layout.activity_line_watch_face_config);
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
@@ -65,9 +66,11 @@ public class LineWatchFaceConfigColorActivity extends WearableActivity implement
         mAdapter.setListener(this);
         mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
         mWearableRecyclerView.setAdapter(mAdapter);
+        */
 
     }
 
+    /*
     @Override
     public void onItemSelected(int position) {
 
@@ -78,6 +81,7 @@ public class LineWatchFaceConfigColorActivity extends WearableActivity implement
         setResult(Activity.RESULT_OK, new Intent());
         finish();
     }
+    */
 
     private ArrayList<ConfigurationItemModel> getConfigurationItems() {
         ArrayList<ConfigurationItemModel> items = new ArrayList<>();

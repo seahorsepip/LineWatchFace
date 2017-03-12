@@ -1,5 +1,6 @@
 package com.seapip.thomas.line_watchface;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,6 +19,7 @@ import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
+import android.support.wearable.view.WearableListView;
 import android.support.wearable.view.WearableRecyclerView;
 import android.util.Log;
 import android.view.View;
@@ -36,128 +38,40 @@ import java.util.concurrent.Executors;
  * The watch-side config activity for {@link LineWatchFaceService}, which
  * allows for setting complications on the left and right of watch face.
  */
-public class LineWatchFaceConfigActivity extends WearableActivity implements ConfigurationAdapter.ItemSelectedListener {
+public class LineWatchFaceConfigActivity extends Activity {
     private ConfigurationAdapter mAdapter;
     private SharedPreferences mPrefs;
-    private WearableRecyclerView mWearableRecyclerView;
+    //private WearableRecyclerView mWearableRecyclerView;
     private HashMap<Integer, ComplicationProviderInfo> complicationProviderInfos;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_line_watch_face_config);
-        mAdapter = new ConfigurationAdapter(getApplicationContext(), new ArrayList<ConfigurationItemModel>());
-        mAdapter.setListener(LineWatchFaceConfigActivity.this);
-        mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
-        mWearableRecyclerView.setAdapter(mAdapter);
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
         complicationProviderInfos = new HashMap<>();
-        Executor executor = new Executor() {
-            @Override
-            public void execute(@NonNull Runnable r) {
-                new Thread(r).start();
-            }
-        };
 
-        ProviderInfoRetriever.OnProviderInfoReceivedCallback callback = new ProviderInfoRetriever.OnProviderInfoReceivedCallback() {
-            @Override
-            public void onProviderInfoReceived(int i, @Nullable ComplicationProviderInfo complicationProviderInfo) {
-                complicationProviderInfos.put(i, complicationProviderInfo);
-                mAdapter.update(getConfigurationItems());
-            }
-        };
-
-
-        ProviderInfoRetriever providerInfoRetriever = new ProviderInfoRetriever(getApplicationContext(), executor);
-
-        providerInfoRetriever.init();
-        providerInfoRetriever.retrieveProviderInfo(callback,
-                new ComponentName(
-                        getApplicationContext(),
-                        LineWatchFaceService.class),
-                LineWatchFaceService.COMPLICATION_IDS);
+        WearableListView wearableListView = (WearableListView) findViewById(R.id.wearable_List);
+        wearableListView.setAdapter(new ConfigurationAdapter(this, getConfigurationItems()));
+        wearableListView.setClickListener(mClickListener);
     }
 
-    @Override
-    protected void onActivityResult(int position, int resultCode, Intent data) {
-        View item = mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.text_wrapper);
-        TextView text = (TextView) item.findViewById(R.id.value_item);
-        ImageView image = (ImageView) mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.image_item);
-        Drawable drawable;
-        String value = text.getText().toString();
-        SharedPreferences.Editor mEditor = mPrefs.edit();
-        if (resultCode == RESULT_OK) {
-            switch (position) {
-                case 0:
-                case 1:
-                case 2:
-                case 4:
-                    ComplicationProviderInfo complicationProviderInfo =
-                            data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
-
-                    value = "Empty";
-                    if (complicationProviderInfo != null) {
-                        value = complicationProviderInfo.providerName;
-                    }
-                    break;
-                case 3:
-                    value = mPrefs.getString("setting_color_name", "Cyan");
-                    break;
-                case 5:
-                    BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
-                    switch (backgroundEffect) {
-                        case NONE:
-                            backgroundEffect = BackgroundEffect.BLUR;
-                            break;
-                        case BLUR:
-                            backgroundEffect = BackgroundEffect.DARKEN;
-                            break;
-                        case DARKEN:
-                            backgroundEffect = BackgroundEffect.DARKEN_BLUR;
-                            break;
-                        case DARKEN_BLUR:
-                            backgroundEffect = BackgroundEffect.NONE;
-                            break;
-                    }
-                    mEditor.putInt("setting_background_effect", backgroundEffect.getValue()).commit();
-                    value = backgroundEffect.toString();
-                    break;
-                case 6:
-                    NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
-                    drawable = getDrawable(R.drawable.ic_notification);
-                    switch (notificationIndicator) {
-                        case DISABLED:
-                            notificationIndicator = NotificationIndicator.UNREAD;
-                            break;
-                        case UNREAD:
-                            notificationIndicator = NotificationIndicator.ALL;
-                            break;
-                        case ALL:
-                            notificationIndicator = NotificationIndicator.DISABLED;
-                            drawable = getDrawable(R.drawable.ic_notification_disabled);
-                            break;
-                    }
-                    mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).commit();
-                    value = notificationIndicator.toString();
-                    image.setImageDrawable(drawable);
-                    break;
-            }
-            text.setText(value);
+    // Handle our Wearable List's click events
+    private WearableListView.ClickListener mClickListener = new WearableListView.ClickListener() {
+        @Override
+        public void onClick(WearableListView.ViewHolder viewHolder) {
+            Toast.makeText(LineWatchFaceConfigActivity.this,
+                    "Click",
+                    Toast.LENGTH_SHORT).show();
         }
-        mWearableRecyclerView.invalidate();
-    }
 
-    @Override
-    public void onItemSelected(int position) {
-        Intent activity = getConfigurationItems().get(position).getActivity();
-        if (activity != null) {
-            startActivityForResult(activity, position);
-        } else {
-            onActivityResult(position, RESULT_OK, null);
+        @Override
+        public void onTopEmptyRegionClick() {
+
         }
-    }
+    };
+
 
     private String complicationProviderName(HashMap data, int key) {
         return complicationProviderInfos.containsKey(key) && complicationProviderInfos.get(key) != null ? complicationProviderInfos.get(key).providerName : "Empty";
@@ -200,14 +114,14 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                 getDrawable(R.drawable.ic_color),
                 new Intent(LineWatchFaceConfigActivity.this, LineWatchFaceConfigColorActivity.class),
                 mPrefs.getString("setting_color_name", "Cyan")));
-            items.add(new ConfigurationItemModel("Background",
-                    getDrawable(R.drawable.ic_background),
-                    ComplicationHelperActivity.createProviderChooserHelperIntent(
-                            getApplicationContext(),
-                            watchFace,
-                            complicationIds[3],
-                            LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
-                    complicationProviderName(complicationProviderInfos, 3)));
+        items.add(new ConfigurationItemModel("Background",
+                getDrawable(R.drawable.ic_background),
+                ComplicationHelperActivity.createProviderChooserHelperIntent(
+                        getApplicationContext(),
+                        watchFace,
+                        complicationIds[3],
+                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
+                complicationProviderName(complicationProviderInfos, 3)));
         BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(
                 mPrefs.getInt("setting_background_effect",
                         BackgroundEffect.NONE.getValue()
