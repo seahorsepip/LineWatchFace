@@ -14,7 +14,7 @@
         android:id="@+id/image_item"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:scaleType="fitStart"
+        android:scaleType="fitCenter"
         android:layout_gravity="center" />
 
     <LinearLayout

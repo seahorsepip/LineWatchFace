@@ -1,6 +1,7 @@
 package com.seapip.thomas.line_watchface;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.support.v7.widget.RecyclerView;
 import android.support.wearable.view.WearableRecyclerView;
 import android.view.LayoutInflater;
@@ -11,13 +12,13 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-public class ConfigurationAdapter extends WearableRecyclerView.Adapter<ConfigurationAdapter.ViewHolder> {
+public class ConfigAdapter extends WearableRecyclerView.Adapter<ConfigAdapter.ViewHolder> {
 
-    private ArrayList<ConfigurationItemModel> data;
+    private ArrayList<ConfigItem> data;
     private Context context;
     private ItemSelectedListener itemSelectedListener;
 
-    public ConfigurationAdapter(Context context, ArrayList<ConfigurationItemModel> data) {
+    public ConfigAdapter(Context context, ArrayList<ConfigItem> data) {
         this.context = context;
         this.data = data;
     }
@@ -53,25 +54,27 @@ public class ConfigurationAdapter extends WearableRecyclerView.Adapter<Configura
         this.itemSelectedListener = itemSelectedListener;
     }
 
-    public void update(ArrayList<ConfigurationItemModel> modelList){
+    public void update(ArrayList<ConfigItem> modelList){
         data.clear();
-        for (ConfigurationItemModel model: modelList) {
+        for (ConfigItem model: modelList) {
             data.add(model);
         }
         notifyDataSetChanged();
     }
 
     @Override
-    public ConfigurationAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public ConfigAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         return new ViewHolder(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.activity_line_watch_face_list_item, parent, false));
+                .inflate(R.layout.config_item, parent, false));
     }
 
     @Override
-    public void onBindViewHolder(ConfigurationAdapter.ViewHolder holder, final int position) {
+    public void onBindViewHolder(ConfigAdapter.ViewHolder holder, final int position) {
         if (data != null && !data.isEmpty()) {
+            float radius = 20 * context.getResources().getDisplayMetrics().density;
+            Drawable drawable = new ConfigDrawable(radius, data.get(position).getImage());
             holder.textView.setText(data.get(position).getTitle());
-            holder.imageView.setImageDrawable(data.get(position).getImage());
+            holder.imageView.setImageDrawable(drawable);
             String val = data.get(position).getValue();
             if (val != null) {
                 holder.valueView.setText(val);

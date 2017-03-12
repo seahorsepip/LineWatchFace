@@ -3,14 +3,10 @@ package com.seapip.thomas.line_watchface;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.ProviderInfo;
-import android.content.res.Configuration;
-import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
-import android.support.annotation.Dimension;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.wearable.activity.WearableActivity;
@@ -19,25 +15,20 @@ import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.view.WearableRecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
- * The watch-side config activity for {@link LineWatchFaceService}, which
+ * The watch-side config activity for {@link WatchFaceService}, which
  * allows for setting complications on the left and right of watch face.
  */
-public class LineWatchFaceConfigActivity extends WearableActivity implements ConfigurationAdapter.ItemSelectedListener {
-    private ConfigurationAdapter mAdapter;
+public class ConfigActivity extends WearableActivity implements ConfigAdapter.ItemSelectedListener {
+    private ConfigAdapter mAdapter;
     private SharedPreferences mPrefs;
     private WearableRecyclerView mWearableRecyclerView;
     private HashMap<Integer, ComplicationProviderInfo> complicationProviderInfos;
@@ -45,9 +36,9 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_line_watch_face_config);
-        mAdapter = new ConfigurationAdapter(getApplicationContext(), new ArrayList<ConfigurationItemModel>());
-        mAdapter.setListener(LineWatchFaceConfigActivity.this);
+        setContentView(R.layout.activity_config);
+        mAdapter = new ConfigAdapter(getApplicationContext(), new ArrayList<ConfigItem>());
+        mAdapter.setListener(ConfigActivity.this);
         mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
         mWearableRecyclerView.setAdapter(mAdapter);
 
@@ -76,8 +67,8 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         providerInfoRetriever.retrieveProviderInfo(callback,
                 new ComponentName(
                         getApplicationContext(),
-                        LineWatchFaceService.class),
-                LineWatchFaceService.COMPLICATION_IDS);
+                        WatchFaceService.class),
+                WatchFaceService.COMPLICATION_IDS);
     }
 
     @Override
@@ -126,7 +117,7 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                     break;
                 case 6:
                     NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
-                    drawable = getDrawable(R.drawable.ic_notification);
+                    drawable = getDrawable(R.drawable.ic_notifications_black_24dp);
                     switch (notificationIndicator) {
                         case DISABLED:
                             notificationIndicator = NotificationIndicator.UNREAD;
@@ -136,11 +127,13 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                             break;
                         case ALL:
                             notificationIndicator = NotificationIndicator.DISABLED;
-                            drawable = getDrawable(R.drawable.ic_notification_disabled);
+                            drawable = getDrawable(R.drawable.ic_notifications_off_black_24dp);
                             break;
                     }
                     mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).commit();
                     value = notificationIndicator.toString();
+                    float radius = 20 * getResources().getDisplayMetrics().density;
+                    drawable = new ConfigDrawable(radius, drawable);
                     image.setImageDrawable(drawable);
                     break;
             }
@@ -163,58 +156,56 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
         return complicationProviderInfos.containsKey(key) && complicationProviderInfos.get(key) != null ? complicationProviderInfos.get(key).providerName : "Empty";
     }
 
-    private ArrayList<ConfigurationItemModel> getConfigurationItems() {
+    private ArrayList<ConfigItem> getConfigurationItems() {
         ComponentName watchFace = new ComponentName(
-                getApplicationContext(), LineWatchFaceService.class);
+                getApplicationContext(), WatchFaceService.class);
 
-        int[] complicationIds = LineWatchFaceService.COMPLICATION_IDS;
+        int[] complicationIds = WatchFaceService.COMPLICATION_IDS;
 
-        TypedArray icons = getResources().obtainTypedArray(R.array.line_watch_face_icons);
-
-        ArrayList<ConfigurationItemModel> items = new ArrayList<>();
-        items.add(new ConfigurationItemModel("Top \ncomplication",
-                getDrawable(R.drawable.ic_top_complication),
+        ArrayList<ConfigItem> items = new ArrayList<>();
+        items.add(new ConfigItem("Top \ncomplication",
+                getDrawable(R.drawable.ic_top_complication_black_24dp),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
                         getApplicationContext(),
                         watchFace,
                         complicationIds[0],
-                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[0]),
+                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[0]),
                 complicationProviderName(complicationProviderInfos, 0)));
-        items.add(new ConfigurationItemModel("Left \ncomplication",
-                getDrawable(R.drawable.ic_left_complication),
+        items.add(new ConfigItem("Left \ncomplication",
+                getDrawable(R.drawable.ic_left_complication_black_24dp),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
                         getApplicationContext(),
                         watchFace,
                         complicationIds[1],
-                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
+                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
                 complicationProviderName(complicationProviderInfos, 1)));
-        items.add(new ConfigurationItemModel("Right \ncomplication",
-                getDrawable(R.drawable.ic_right_complication),
+        items.add(new ConfigItem("Right \ncomplication",
+                getDrawable(R.drawable.ic_right_complication_black_24dp),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
                         getApplicationContext(),
                         watchFace,
                         complicationIds[2],
-                        LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[2]),
+                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[2]),
                 complicationProviderName(complicationProviderInfos, 2)));
-        items.add(new ConfigurationItemModel("Color",
-                getDrawable(R.drawable.ic_color),
-                new Intent(LineWatchFaceConfigActivity.this, LineWatchFaceConfigColorActivity.class),
+        items.add(new ConfigItem("Color",
+                getDrawable(R.drawable.ic_color_lens_black_24dp),
+                new Intent(ConfigActivity.this, ConfigColorActivity.class),
                 mPrefs.getString("setting_color_name", "Cyan")));
-            items.add(new ConfigurationItemModel("Background",
-                    getDrawable(R.drawable.ic_background),
+            items.add(new ConfigItem("Background",
+                    getDrawable(R.drawable.ic_background_black_24dp),
                     ComplicationHelperActivity.createProviderChooserHelperIntent(
                             getApplicationContext(),
                             watchFace,
                             complicationIds[3],
-                            LineWatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
+                            WatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
                     complicationProviderName(complicationProviderInfos, 3)));
         BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(
                 mPrefs.getInt("setting_background_effect",
                         BackgroundEffect.NONE.getValue()
                 )
         );
-        items.add(new ConfigurationItemModel("Background effect",
-                getDrawable(R.drawable.ic_background_effect),
+        items.add(new ConfigItem("Background effect",
+                getDrawable(R.drawable.ic_background_effect_black_24dp),
                 null,
                 backgroundEffect.toString()));
         NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(
@@ -222,14 +213,13 @@ public class LineWatchFaceConfigActivity extends WearableActivity implements Con
                         NotificationIndicator.DISABLED.getValue()
                 )
         );
-        items.add(new ConfigurationItemModel("Notification indicator",
-                getDrawable(notificationIndicator == NotificationIndicator.DISABLED ? R.drawable.ic_notification_disabled : R.drawable.ic_notification),
+        items.add(new ConfigItem("Notification indicator",
+                getDrawable(notificationIndicator == NotificationIndicator.DISABLED ? R.drawable.ic_notifications_off_black_24dp : R.drawable.ic_notifications_black_24dp),
                 null,
                 notificationIndicator.toString()));
-        items.add(new ConfigurationItemModel("Time format",
-                getDrawable(R.drawable.ic_time_format),
+        items.add(new ConfigItem("Time format",
+                getDrawable(R.drawable.ic_time_black_24dp),
                 new Intent(Settings.ACTION_DATE_SETTINGS)));
-        icons.recycle();
         return items;
     }
 }

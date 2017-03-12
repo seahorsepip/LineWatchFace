@@ -52,7 +52,6 @@ import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationText;
 import android.support.wearable.watchface.CanvasWatchFaceService;
-import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
 import android.util.SparseArray;
@@ -64,7 +63,7 @@ import java.lang.ref.WeakReference;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-public class LineWatchFaceService extends CanvasWatchFaceService {
+public class WatchFaceService extends CanvasWatchFaceService {
 
     // Left and right dial supported types.
     public static final int[][] COMPLICATION_SUPPORTED_TYPES = {
@@ -104,15 +103,15 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
     }
 
     private static class EngineHandler extends Handler {
-        private final WeakReference<LineWatchFaceService.Engine> mWeakReference;
+        private final WeakReference<WatchFaceService.Engine> mWeakReference;
 
-        public EngineHandler(LineWatchFaceService.Engine reference) {
+        public EngineHandler(WatchFaceService.Engine reference) {
             mWeakReference = new WeakReference<>(reference);
         }
 
         @Override
         public void handleMessage(Message msg) {
-            LineWatchFaceService.Engine engine = mWeakReference.get();
+            WatchFaceService.Engine engine = mWeakReference.get();
             if (engine != null) {
                 switch (msg.what) {
                     case MSG_UPDATE_TIME:
@@ -181,7 +180,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
-            setWatchFaceStyle(new WatchFaceStyle.Builder(LineWatchFaceService.this)
+            setWatchFaceStyle(new WatchFaceStyle.Builder(WatchFaceService.this)
                     .setStatusBarGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL)
                     .setAcceptsTapEvents(true)
                     .build());
@@ -352,7 +351,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             if (mAmbient) {
                 mHourPaint.setColor(Color.WHITE);
                 mMinutePaint.setColor(Color.WHITE);
-                if (mLowBitAmbient || mBurnInProtection) {
+                if(mLowBitAmbient) {
+                    mHourTickPaint.setColor(Color.WHITE);
+                    mComplicationArcValuePaint.setColor(Color.WHITE);
+                    mComplicationPrimaryTextPaint.setColor(Color.WHITE);
+                }
+                if (mBurnInProtection) {
                     mHourPaint.setTypeface(mFontLight);
                     mHourPaint.setAntiAlias(false);
                     mMinutePaint.setAntiAlias(false);
@@ -385,16 +389,19 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 mMinutePaint.setColor(mPrimaryColor);
                 mMinutePaint.setAntiAlias(true);
                 mMinutePaint.setStrokeWidth(4f);
+                mHourTickPaint.setColor(mSecondaryColor);
                 mHourTickPaint.setAntiAlias(true);
                 mHourTickPaint.setStrokeWidth(4f);
                 mTickPaint.setAntiAlias(true);
                 mTickPaint.setStrokeWidth(4f);
+                mComplicationArcValuePaint.setColor(mSecondaryColor);
                 mComplicationArcValuePaint.setAntiAlias(true);
                 mComplicationArcValuePaint.setStrokeWidth(4f);
                 mComplicationArcPaint.setAntiAlias(true);
                 mComplicationArcPaint.setStrokeWidth(4f);
                 mComplicationCirclePaint.setAntiAlias(true);
                 mComplicationCirclePaint.setStrokeWidth(3f);
+                mComplicationPrimaryTextPaint.setColor(mSecondaryColor);
                 mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setAntiAlias(true);
@@ -426,12 +433,12 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mNotificationTextPaint.setTextSize(width / 25);
 
             int gradientColor = Color.argb(128, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
-            Shader shader = new LinearGradient(0, height - 100, 0, height, Color.TRANSPARENT, gradientColor, Shader.TileMode.CLAMP);
+            Shader shader = new LinearGradient(0, height - height / 4, 0, height, Color.TRANSPARENT, gradientColor, Shader.TileMode.CLAMP);
             mNotificationBackgroundPaint.setShader(shader);
         }
 
         /**
-         * Captures tap event (and tap type). The {@link WatchFaceService#TAP_TYPE_TAP} case can be
+         * Captures tap event (and tap type). The {@link android.support.wearable.watchface.WatchFaceService#TAP_TYPE_TAP} case can be
          * used for implementing specific logic to handle the gesture.
          */
         @Override
@@ -470,7 +477,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 } else if (complicationData.getType() == ComplicationData.TYPE_NO_PERMISSION) {
                     ComponentName componentName = new ComponentName(
                             getApplicationContext(),
-                            LineWatchFaceService.class);
+                            WatchFaceService.class);
 
                     Intent permissionRequestIntent =
                             ComplicationHelperActivity.createPermissionRequestHelperIntent(
@@ -646,10 +653,10 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             Icon icon = mAmbient && mBurnInProtection ? data.getBurnInProtectionIcon() : data.getIcon();
             if (icon != null) {
-                icon.setTint(mSecondaryColor);
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
                     drawable.draw(canvas);
                 }
@@ -684,9 +691,9 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             float shortTextY = centerY - (mComplicationTextPaint.descent() + mComplicationTextPaint.ascent() / 2);
 
             if (icon != null) {
-                icon.setTint(mSecondaryColor);
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
+                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
                     int size = (int) Math.round(0.15 * mCenterX);
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 2), Math.round(centerX + size / 2), Math.round(centerY - 2));
                     drawable.draw(canvas);
@@ -721,6 +728,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
                     drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
                     drawable.draw(canvas);
                     canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
@@ -919,7 +927,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
 
             String hourString;
-            if (DateFormat.is24HourFormat(LineWatchFaceService.this)) {
+            if (DateFormat.is24HourFormat(WatchFaceService.this)) {
                 hourString = String.valueOf(mCalendar.get(Calendar.HOUR_OF_DAY));
             } else {
                 int hour = mCalendar.get(Calendar.HOUR);
@@ -972,7 +980,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
             mRegisteredTimeZoneReceiver = true;
             IntentFilter filter = new IntentFilter(Intent.ACTION_TIMEZONE_CHANGED);
-            LineWatchFaceService.this.registerReceiver(mTimeZoneReceiver, filter);
+            WatchFaceService.this.registerReceiver(mTimeZoneReceiver, filter);
         }
 
         private void unregisterReceiver() {
@@ -980,7 +988,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
                 return;
             }
             mRegisteredTimeZoneReceiver = false;
-            LineWatchFaceService.this.unregisterReceiver(mTimeZoneReceiver);
+            WatchFaceService.this.unregisterReceiver(mTimeZoneReceiver);
         }
 
         /**

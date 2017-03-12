@@ -29,7 +29,7 @@
             android:required="false" />
 
         <service
-            android:name=".LineWatchFaceService"
+            android:name=".WatchFaceService"
             android:label="@string/name"
             android:permission="android.permission.BIND_WALLPAPER">
             <meta-data
@@ -53,9 +53,9 @@
         </service>
 
         <activity android:name="android.support.wearable.complications.ComplicationHelperActivity" />
-        <activity android:name="LineWatchFaceConfigColorActivity" />
+        <activity android:name=".ConfigColorActivity" />
         <activity
-            android:name=".LineWatchFaceConfigActivity"
+            android:name=".ConfigActivity"
             android:label="Settings">
             <intent-filter>
                 <action android:name="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE" />

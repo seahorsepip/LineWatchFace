@@ -3,7 +3,7 @@ package com.seapip.thomas.line_watchface;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 
-public class ConfigurationItemModel {
+public class ConfigItem {
 
     private String title;
     private Intent activity;
@@ -43,13 +43,13 @@ public class ConfigurationItemModel {
         this.value = value;
     }
 
-    public ConfigurationItemModel(String title, Drawable image, Intent activity) {
+    public ConfigItem(String title, Drawable image, Intent activity) {
         this.title = title;
         this.activity = activity;
         this.image = image;
     }
 
-    public ConfigurationItemModel(String title, Drawable image, Intent activity, String value) {
+    public ConfigItem(String title, Drawable image, Intent activity, String value) {
         this(title, image, activity);
         this.value = value;
     }
