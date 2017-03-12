@@ -188,7 +188,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
 
             mCalendar = Calendar.getInstance();
 
-
             mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
             /* Set defaults for fonts */
