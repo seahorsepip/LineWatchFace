@@ -62,9 +62,9 @@ public class ComplicationManager extends android.support.wearable.complications.
 
             /*
             Get the first found complication provider and use it, assuming it's the only installed
-            complication provider
+            complication provider, if not change the idnex or just pass the name of teh class as a string.
             */
-            Class providerService = Class.forName(services.get(1));
+            Class providerService = Class.forName(services.get(0));
             providerServices[1] = (ComplicationProviderService) providerService.newInstance();
             Bundle metaData = context.getPackageManager().getServiceInfo(new ComponentName(context, providerService), PackageManager.GET_META_DATA).metaData;
             //Supported types of complication provider
