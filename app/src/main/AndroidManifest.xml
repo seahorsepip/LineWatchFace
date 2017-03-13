@@ -7,7 +7,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="com.google.android.permission.PROVIDE_BACKGROUND" />
     <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA" />
-    <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA_PRIVILEGED" />
 
     <application
         android:allowBackup="true"
@@ -64,6 +63,36 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".provider.RandomNumberProviderService"
+            android:icon="@drawable/ic_color"
+            android:label="provider_random_number"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST"/>
+            </intent-filter>
+
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="RANGED_VALUE,SHORT_TEXT,LONG_TEXT"/>
+            <!--
+            When your complication data provider is active, UPDATE_PERIOD_SECONDS specifies how
+            often you want the system to check for updates to the data. In this case, the time is
+            specified to 600 seconds (10 minutes).
+
+            In general, you want to set this value high and manually trigger updates only when your
+            complication data actually changes via ProviderUpdateRequester (check
+            UpdateComplicationDataService.java for an example).
+
+            In everyday use, developers should consider intervals in the order of minutes.
+            Also, remember that this is only a guidance for the system. Android Wear may update less
+            frequently.
+            -->
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="600"/>
+        </service>
     </application>
 
 </manifest>

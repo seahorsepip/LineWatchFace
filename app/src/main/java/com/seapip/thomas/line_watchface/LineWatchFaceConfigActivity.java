@@ -4,7 +4,11 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PermissionInfo;
 import android.content.pm.ProviderInfo;
+import android.content.pm.ServiceInfo;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
@@ -30,6 +34,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,6 +60,10 @@ public class LineWatchFaceConfigActivity extends Activity {
         WearableListView wearableListView = (WearableListView) findViewById(R.id.wearable_List);
         wearableListView.setAdapter(new ConfigurationAdapter(this, getConfigurationItems()));
         wearableListView.setClickListener(mClickListener);
+
+        //Magic happens here
+
+
     }
 
     // Handle our Wearable List's click events

@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId "com.seapip.thomas.line_watchface"
         minSdkVersion 23
-        targetSdkVersion 25
+        targetSdkVersion 23
         versionCode 7
         versionName "2.1"
     }

@@ -48,8 +48,9 @@ import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
+import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationHelperActivity;
-import android.support.wearable.watchface.CanvasWatchFaceService;
+import android.support.wearable.complications.ComplicationText;
 import android.support.wearable.watchface.WatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
@@ -58,8 +59,7 @@ import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
-import com.seapip.thomas.line_watchface.ComplicationPolyfill.ComplicationData;
-import com.seapip.thomas.line_watchface.ComplicationPolyfill.ComplicationText;
+import com.seapip.thomas.line_watchface.complications.CanvasWatchFaceService;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -219,23 +219,22 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mActiveComplicationDataSparseArray = new SparseArray<>(COMPLICATION_IDS.length);
             setActiveComplications(COMPLICATION_IDS);
 
-            ComplicationData batteryComplication = new ComplicationData();
-            batteryComplication.setType(ComplicationData.TYPE_RANGED_VALUE);
-            batteryComplication.setValue(75);
-            batteryComplication.setMinValue(0);
-            batteryComplication.setMaxValue(100);
-            Icon icon = Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp);
-            batteryComplication.setIcon(icon);
-            batteryComplication.setBurnInProtectionIcon(icon);
-
-
+            ComplicationData batteryComplication = new ComplicationData.Builder(ComplicationData.TYPE_RANGED_VALUE)
+                    .setValue(99)
+                    .setMinValue(0)
+                    .setMaxValue(123)
+                    .setIcon(Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp))
+                    .setBurnInProtectionIcon(Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp))
+                    .build();
+            /*
             ComplicationData dateComplication = new ComplicationData();
             dateComplication.setType(ComplicationData.TYPE_SHORT_TEXT);
             dateComplication.setShortText(new ComplicationText("12"));
             dateComplication.setShortTitle(new ComplicationText("MAR"));
+            */
 
             mActiveComplicationDataSparseArray.put(RIGHT_DIAL_COMPLICATION, batteryComplication);
-            mActiveComplicationDataSparseArray.put(LEFT_DIAL_COMPLICATION, dateComplication);
+            //mActiveComplicationDataSparseArray.put(LEFT_DIAL_COMPLICATION, dateComplication);
 
             mComplicationArcValuePaint = new Paint();
             mComplicationArcValuePaint.setColor(mSecondaryColor);
@@ -334,7 +333,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         /*
          * TODO: re implement for wear 1.0
          */
-        /*
         @Override
         public void onComplicationDataUpdate(
                 int complicationId, ComplicationData complicationData) {
@@ -342,7 +340,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             mActiveComplicationDataSparseArray.put(complicationId, complicationData);
             invalidate();
         }
-        */
 
 
         @Override
