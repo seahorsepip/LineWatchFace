@@ -59,7 +59,7 @@ import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
-import com.seapip.thomas.line_watchface.complications.CanvasWatchFaceService;
+import com.seapip.thomas.line_watchface.complications_polyfill.CanvasWatchFaceService;
 
 import java.lang.ref.WeakReference;
 import java.util.Calendar;
@@ -218,23 +218,6 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
         private void initializeComplication() {
             mActiveComplicationDataSparseArray = new SparseArray<>(COMPLICATION_IDS.length);
             setActiveComplications(COMPLICATION_IDS);
-
-            ComplicationData batteryComplication = new ComplicationData.Builder(ComplicationData.TYPE_RANGED_VALUE)
-                    .setValue(99)
-                    .setMinValue(0)
-                    .setMaxValue(123)
-                    .setIcon(Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp))
-                    .setBurnInProtectionIcon(Icon.createWithResource(getApplicationContext(), R.drawable.ic_battery_full_black_24dp))
-                    .build();
-            /*
-            ComplicationData dateComplication = new ComplicationData();
-            dateComplication.setType(ComplicationData.TYPE_SHORT_TEXT);
-            dateComplication.setShortText(new ComplicationText("12"));
-            dateComplication.setShortTitle(new ComplicationText("MAR"));
-            */
-
-            mActiveComplicationDataSparseArray.put(RIGHT_DIAL_COMPLICATION, batteryComplication);
-            //mActiveComplicationDataSparseArray.put(LEFT_DIAL_COMPLICATION, dateComplication);
 
             mComplicationArcValuePaint = new Paint();
             mComplicationArcValuePaint.setColor(mSecondaryColor);
@@ -919,7 +902,7 @@ public class LineWatchFaceService extends CanvasWatchFaceService {
             }
 
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
-            if (!mAmbient && false) {
+            if (!mAmbient) {
                 float percentage = milliseconds / 60000f;
                 if (mIsRound) {
                     mSecondPaint.setStrokeCap(Paint.Cap.SQUARE);

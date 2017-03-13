@@ -63,7 +63,6 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
-
         <service
             android:name=".provider.RandomNumberProviderService"
             android:icon="@drawable/ic_color"

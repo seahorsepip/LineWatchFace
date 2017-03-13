@@ -1,12 +1,19 @@
 package com.seapip.thomas.line_watchface.provider;
 
 import android.support.wearable.complications.ComplicationData;
+import android.support.wearable.complications.ComplicationManager;
+import android.support.wearable.complications.ComplicationProviderService;
+import android.support.wearable.complications.ComplicationText;
 import android.util.Log;
 
-import com.seapip.thomas.line_watchface.complications.ComplicationManager;
-import com.seapip.thomas.line_watchface.complications.ComplicationProviderService;
-
 import java.util.Locale;
+
+/**
+ * Modified complication provider sample from https://github.com/googlesamples/android-WatchFace
+ * onTap related code has been commented out for now to prevent it from causing errors,
+ * all other code has been untouched!
+ */
+
 
 /**
  * Example Watch Face Complication data provider provides a random number on every update.
@@ -41,12 +48,10 @@ public class RandomNumberProviderService extends ComplicationProviderService {
      */
     @Override
     public void onComplicationUpdate(
-            int complicationId, int dataType, ComplicationManager complicationManager) {
-        Log.d(TAG, "onComplicationUpdate() id: " + complicationId);
-
+            int complicationId, int dataType, android.support.wearable.complications.ComplicationManager complicationManager) {
 
         // Retrieve your data, in this case, we simply create a random number to display.
-        int randomNumber = (int) Math.floor(Math.random() * 10);
+        int randomNumber = (int) Math.floor(Math.random() * 100);
 
         String randomNumberText =
                 String.format(Locale.getDefault(), "%d!", randomNumber);
@@ -74,7 +79,6 @@ public class RandomNumberProviderService extends ComplicationProviderService {
 
         ComplicationData complicationData = null;
 
-        /*
         switch (dataType) {
             case ComplicationData.TYPE_RANGED_VALUE:
                 complicationData = new ComplicationData.Builder(ComplicationData.TYPE_RANGED_VALUE)
@@ -106,7 +110,7 @@ public class RandomNumberProviderService extends ComplicationProviderService {
 
         if (complicationData != null) {
             complicationManager.updateComplicationData(complicationId, complicationData);
-        }*/
+        }
     }
 
     /*
