@@ -22,7 +22,7 @@ public enum  BackgroundEffect {
                 return backgroundEffect;
             }
         }
-        return null;
+        return NONE;
     }
 
     @Override

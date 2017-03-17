@@ -21,7 +21,7 @@ public enum NotificationIndicator {
                 return notificationIndicator;
             }
         }
-        return null;
+        return DISABLED;
     }
 
     @Override

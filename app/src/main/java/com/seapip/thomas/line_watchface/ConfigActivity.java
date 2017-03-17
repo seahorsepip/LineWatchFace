@@ -15,12 +15,12 @@ import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.view.WearableRecyclerView;
+import android.util.SparseArray;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.Executor;
 
 /**
@@ -31,7 +31,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
     private ConfigAdapter mAdapter;
     private SharedPreferences mPrefs;
     private WearableRecyclerView mWearableRecyclerView;
-    private HashMap<Integer, ComplicationProviderInfo> complicationProviderInfos;
+    private SparseArray<ComplicationProviderInfo> complicationProviderInfos;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,7 +44,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-        complicationProviderInfos = new HashMap<>();
+        complicationProviderInfos = new SparseArray<>();
         Executor executor = new Executor() {
             @Override
             public void execute(@NonNull Runnable r) {
@@ -98,6 +98,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                     break;
                 case 5:
                     BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
+                    assert backgroundEffect != null;
                     switch (backgroundEffect) {
                         case NONE:
                             backgroundEffect = BackgroundEffect.BLUR;
@@ -112,7 +113,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                             backgroundEffect = BackgroundEffect.NONE;
                             break;
                     }
-                    mEditor.putInt("setting_background_effect", backgroundEffect.getValue()).commit();
+                    mEditor.putInt("setting_background_effect", backgroundEffect.getValue()).apply();
                     value = backgroundEffect.toString();
                     break;
                 case 6:
@@ -130,7 +131,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                             drawable = getDrawable(R.drawable.ic_notifications_off_black_24dp);
                             break;
                     }
-                    mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).commit();
+                    mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).apply();
                     value = notificationIndicator.toString();
                     float radius = 20 * getResources().getDisplayMetrics().density;
                     drawable = new ConfigDrawable(radius, drawable);
@@ -152,8 +153,8 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
         }
     }
 
-    private String complicationProviderName(HashMap data, int key) {
-        return complicationProviderInfos.containsKey(key) && complicationProviderInfos.get(key) != null ? complicationProviderInfos.get(key).providerName : "Empty";
+    private String complicationProviderName(int key) {
+        return complicationProviderInfos.get(key) != null ? complicationProviderInfos.get(key).providerName : "Empty";
     }
 
     private ArrayList<ConfigItem> getConfigurationItems() {
@@ -170,7 +171,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                         watchFace,
                         complicationIds[0],
                         WatchFaceService.COMPLICATION_SUPPORTED_TYPES[0]),
-                complicationProviderName(complicationProviderInfos, 0)));
+                complicationProviderName(0)));
         items.add(new ConfigItem("Left \ncomplication",
                 getDrawable(R.drawable.ic_left_complication_black_24dp),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
@@ -178,7 +179,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                         watchFace,
                         complicationIds[1],
                         WatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
-                complicationProviderName(complicationProviderInfos, 1)));
+                complicationProviderName(1)));
         items.add(new ConfigItem("Right \ncomplication",
                 getDrawable(R.drawable.ic_right_complication_black_24dp),
                 ComplicationHelperActivity.createProviderChooserHelperIntent(
@@ -186,19 +187,19 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
                         watchFace,
                         complicationIds[2],
                         WatchFaceService.COMPLICATION_SUPPORTED_TYPES[2]),
-                complicationProviderName(complicationProviderInfos, 2)));
+                complicationProviderName(2)));
         items.add(new ConfigItem("Color",
                 getDrawable(R.drawable.ic_color_lens_black_24dp),
                 new Intent(ConfigActivity.this, ConfigColorActivity.class),
                 mPrefs.getString("setting_color_name", "Cyan")));
-            items.add(new ConfigItem("Background",
-                    getDrawable(R.drawable.ic_background_black_24dp),
-                    ComplicationHelperActivity.createProviderChooserHelperIntent(
-                            getApplicationContext(),
-                            watchFace,
-                            complicationIds[3],
-                            WatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
-                    complicationProviderName(complicationProviderInfos, 3)));
+        items.add(new ConfigItem("Background",
+                getDrawable(R.drawable.ic_background_black_24dp),
+                ComplicationHelperActivity.createProviderChooserHelperIntent(
+                        getApplicationContext(),
+                        watchFace,
+                        complicationIds[3],
+                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
+                complicationProviderName(3)));
         BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(
                 mPrefs.getInt("setting_background_effect",
                         BackgroundEffect.NONE.getValue()

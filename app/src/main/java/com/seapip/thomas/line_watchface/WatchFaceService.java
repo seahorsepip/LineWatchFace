@@ -31,6 +31,7 @@ import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PathMeasure;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
@@ -72,12 +73,10 @@ public class WatchFaceService extends CanvasWatchFaceService {
             {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
             {ComplicationData.TYPE_LARGE_IMAGE}
     };
-    // Unique IDs for each complication.
     private static final int TOP_DIAL_COMPLICATION = 0;
     private static final int LEFT_DIAL_COMPLICATION = 1;
     private static final int RIGHT_DIAL_COMPLICATION = 2;
     private static final int BACKGROUND_COMPLICATION = 3;
-    // Left and right complication IDs as array for Complication API.
     public static final int[] COMPLICATION_IDS = {
             TOP_DIAL_COMPLICATION,
             LEFT_DIAL_COMPLICATION,
@@ -351,7 +350,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             if (mAmbient) {
                 mHourPaint.setColor(Color.WHITE);
                 mMinutePaint.setColor(Color.WHITE);
-                if(mLowBitAmbient) {
+                if (mLowBitAmbient) {
                     mHourTickPaint.setColor(Color.WHITE);
                     mComplicationArcValuePaint.setColor(Color.WHITE);
                     mComplicationPrimaryTextPaint.setColor(Color.WHITE);
@@ -505,10 +504,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
 
-            for (RectF tapBox : mComplicationTapBoxes) {
-                tapBox = null;
-            }
-
             drawBackground(canvas, now, BACKGROUND_COMPLICATION);
             drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2);
             drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, mCenterX / 2, mCenterY);
@@ -561,7 +556,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     case ComplicationData.TYPE_SMALL_IMAGE:
                         drawSmallImageComplication(canvas,
                                 complicationData,
-                                currentTimeMillis,
                                 centerX,
                                 centerY,
                                 id);
@@ -577,7 +571,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     case ComplicationData.TYPE_ICON:
                         drawIconComplication(canvas,
                                 complicationData,
-                                currentTimeMillis,
                                 centerX,
                                 centerY,
                                 id);
@@ -656,7 +649,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
-                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
+                    drawable.setTint(mComplicationArcValuePaint.getColor());
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size / 2), Math.round(centerX + size / 2), Math.round(centerY + size / 2));
                     drawable.draw(canvas);
                 }
@@ -693,7 +686,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             if (icon != null) {
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
-                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
+                    drawable.setTint(mComplicationPrimaryTextPaint.getColor());
                     int size = (int) Math.round(0.15 * mCenterX);
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 2), Math.round(centerX + size / 2), Math.round(centerY - 2));
                     drawable.draw(canvas);
@@ -714,8 +707,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
         }
 
         private void drawIconComplication(Canvas canvas, ComplicationData data,
-                                          long currentTimeMillis, float centerX,
-                                          float centerY, int id) {
+                                          float centerX, float centerY, int id) {
             float radius = mCenterX / 4;
 
             mComplicationTapBoxes[id] = new RectF(centerX - radius,
@@ -728,7 +720,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
                 if (drawable != null) {
                     int size = (int) Math.round(0.15 * mCenterX);
-                    drawable.setTint(mLowBitAmbient ? Color.WHITE : mSecondaryColor);
+                    drawable.setTint(mComplicationPrimaryTextPaint.getColor());
                     drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
                     drawable.draw(canvas);
                     canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
@@ -737,8 +729,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
         }
 
         private void drawSmallImageComplication(Canvas canvas, ComplicationData data,
-                                                long currentTimeMillis, float centerX,
-                                                float centerY, int id) {
+                                                float centerX, float centerY, int id) {
             float radius = mCenterX / 4;
 
             mComplicationTapBoxes[id] = new RectF(centerX - radius,
@@ -800,7 +791,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
             Bitmap output = Bitmap.createBitmap(bitmap.getWidth(),
                     bitmap.getHeight(), Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(output);
-            final int color = 0xff424242;
             final Paint paint = new Paint();
             final Rect rect = new Rect(0, 0, bitmap.getWidth(),
                     bitmap.getHeight());
@@ -903,27 +893,26 @@ public class WatchFaceService extends CanvasWatchFaceService {
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
             if (!mAmbient) {
                 float percentage = milliseconds / 60000f;
+                Path path = new Path();
                 if (mIsRound) {
-                    mSecondPaint.setStrokeCap(Paint.Cap.SQUARE);
-                    canvas.drawArc(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -89.7f, 360 * percentage, false, mSecondPaint);
+                    path.moveTo(mCenterX - 2, 1);
+                    //path.moveTo(0, 0);
+                    path.lineTo(mCenterX + 2, 1);
+                    path.arcTo(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -90, 359.99f, false);
+                    //path.addCircle(mCenterX, mCenterY, mCenterX - 1, Path.Direction.CW);
                 } else {
-                    mSecondPaint.setStrokeCap(Paint.Cap.BUTT);
-                    if (percentage > 0) {
-                        canvas.drawLine(mCenterX - 2, 1, mCenterX + mCenterX * (percentage / 0.125f), 1, mSecondPaint);
-                    }
-                    if (percentage > 0.125) {
-                        canvas.drawLine(mCenterX * 2 - 1, 4, mCenterX * 2 - 1, Math.max(4, mCenterY * 2 * ((percentage - 0.125f) / 0.25f) + 7), mSecondPaint);
-                    }
-                    if (percentage > 0.375) {
-                        canvas.drawLine(mCenterX * 2 - 4, mCenterY * 2 - 1, Math.min(mCenterX * 2 - 4, mCenterX * 2 - mCenterX * 2 * ((percentage - 0.375f) / 0.25f) + 7), mCenterY * 2 - 1, mSecondPaint);
-                    }
-                    if (percentage > 0.625) {//overlap
-                        canvas.drawLine(1, mCenterY * 2 - 4, 1, Math.min(mCenterY * 2 - 4, mCenterY * 2 - mCenterY * 2 * ((percentage - 0.625f) / 0.25f) + 4), mSecondPaint);
-                    }
-                    if (percentage > 0.875) {//gap
-                        canvas.drawLine(4, 1, Math.max(4, (mCenterX - 1) * ((percentage - 0.875f) / 0.125f)), 1, mSecondPaint);
-                    }
+                    path.moveTo(mCenterX - 2, 1);
+                    path.lineTo(mCenterX * 2 - 1, 1);
+                    path.lineTo(mCenterX * 2 - 1, mCenterY * 2 - 1);
+                    path.lineTo(1, mCenterY * 2 - 1);
+                    path.lineTo(1, 1);
+                    path.lineTo(mCenterX, 1);
                 }
+                PathMeasure measure = new PathMeasure(path, false);
+                float length = measure.getLength();
+                Path partialPath = new Path();
+                measure.getSegment(0, length * percentage, partialPath, true);
+                canvas.drawPath(partialPath, mSecondPaint);
             }
 
             String hourString;
