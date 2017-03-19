@@ -521,7 +521,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     if (largeImage != null && !(mAmbient && (mBurnInProtection || mLowBitAmbient))) {
                         Drawable drawable = largeImage.loadDrawable(getApplicationContext());
                         if (drawable != null) {
-                            BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
+                            BackgroundEffect backgroundEffect = BackgroundEffect.NONE.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
                             switch (backgroundEffect) {
                                 case BLUR:
                                 case DARKEN_BLUR:
@@ -896,10 +896,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 Path path = new Path();
                 if (mIsRound) {
                     path.moveTo(mCenterX - 2, 1);
-                    //path.moveTo(0, 0);
                     path.lineTo(mCenterX + 2, 1);
                     path.arcTo(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -90, 359.99f, false);
-                    //path.addCircle(mCenterX, mCenterY, mCenterX - 1, Path.Direction.CW);
                 } else {
                     path.moveTo(mCenterX - 2, 1);
                     path.lineTo(mCenterX * 2 - 1, 1);
@@ -930,7 +928,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void drawNotificationCount(Canvas canvas) {
             int count = 0;
-            NotificationIndicator notificationCount = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
+            NotificationIndicator notificationCount = NotificationIndicator.DISABLED.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
             switch (notificationCount) {
                 case UNREAD:
                     count = mUnreadNotificationCount;

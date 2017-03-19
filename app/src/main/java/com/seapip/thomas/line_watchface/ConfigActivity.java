@@ -3,7 +3,6 @@ package com.seapip.thomas.line_watchface;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
@@ -16,11 +15,9 @@ import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
 import android.support.wearable.view.WearableRecyclerView;
 import android.util.SparseArray;
-import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 
 /**
@@ -73,74 +70,20 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
 
     @Override
     protected void onActivityResult(int position, int resultCode, Intent data) {
-        View item = mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.text_wrapper);
-        TextView text = (TextView) item.findViewById(R.id.value_item);
-        ImageView image = (ImageView) mWearableRecyclerView.getLayoutManager().findViewByPosition(position).findViewById(R.id.image_item);
-        Drawable drawable;
-        String value = text.getText().toString();
         SharedPreferences.Editor mEditor = mPrefs.edit();
+        ConfigItem item = getConfigurationItems().get(position);
         if (resultCode == RESULT_OK) {
-            switch (position) {
-                case 0:
-                case 1:
-                case 2:
-                case 4:
-                    ComplicationProviderInfo complicationProviderInfo =
-                            data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
-
-                    value = "Empty";
-                    if (complicationProviderInfo != null) {
-                        value = complicationProviderInfo.providerName;
-                    }
+            switch (item.getRequestCode()) {
+                case ConfigItem.PREFERENCE:
+                    Preference value = item.getPreferenceValue();
+                    mEditor.putInt(item.getPreference(), value.fromValue(value.getValue() + 1).getValue()).apply();
                     break;
-                case 3:
-                    value = mPrefs.getString("setting_color_name", "Cyan");
-                    break;
-                case 5:
-                    BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
-                    assert backgroundEffect != null;
-                    switch (backgroundEffect) {
-                        case NONE:
-                            backgroundEffect = BackgroundEffect.BLUR;
-                            break;
-                        case BLUR:
-                            backgroundEffect = BackgroundEffect.DARKEN;
-                            break;
-                        case DARKEN:
-                            backgroundEffect = BackgroundEffect.DARKEN_BLUR;
-                            break;
-                        case DARKEN_BLUR:
-                            backgroundEffect = BackgroundEffect.NONE;
-                            break;
-                    }
-                    mEditor.putInt("setting_background_effect", backgroundEffect.getValue()).apply();
-                    value = backgroundEffect.toString();
-                    break;
-                case 6:
-                    NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
-                    drawable = getDrawable(R.drawable.ic_notifications_black_24dp);
-                    switch (notificationIndicator) {
-                        case DISABLED:
-                            notificationIndicator = NotificationIndicator.UNREAD;
-                            break;
-                        case UNREAD:
-                            notificationIndicator = NotificationIndicator.ALL;
-                            break;
-                        case ALL:
-                            notificationIndicator = NotificationIndicator.DISABLED;
-                            drawable = getDrawable(R.drawable.ic_notifications_off_black_24dp);
-                            break;
-                    }
-                    mEditor.putInt("setting_notification_indicator", notificationIndicator.getValue()).apply();
-                    value = notificationIndicator.toString();
-                    float radius = 20 * getResources().getDisplayMetrics().density;
-                    drawable = new ConfigDrawable(radius, drawable);
-                    image.setImageDrawable(drawable);
+                case ConfigItem.COMPLICATION:
+                    complicationProviderInfos.put(item.getComplicationId(), (ComplicationProviderInfo) data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO));
                     break;
             }
-            text.setText(value);
+            mAdapter.update(getConfigurationItems());
         }
-        mWearableRecyclerView.invalidate();
     }
 
     @Override
@@ -161,66 +104,93 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
         ComponentName watchFace = new ComponentName(
                 getApplicationContext(), WatchFaceService.class);
 
-        int[] complicationIds = WatchFaceService.COMPLICATION_IDS;
-
-        ArrayList<ConfigItem> items = new ArrayList<>();
-        items.add(new ConfigItem("Top \ncomplication",
-                getDrawable(R.drawable.ic_top_complication_black_24dp),
-                ComplicationHelperActivity.createProviderChooserHelperIntent(
-                        getApplicationContext(),
-                        watchFace,
-                        complicationIds[0],
-                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[0]),
-                complicationProviderName(0)));
-        items.add(new ConfigItem("Left \ncomplication",
-                getDrawable(R.drawable.ic_left_complication_black_24dp),
-                ComplicationHelperActivity.createProviderChooserHelperIntent(
-                        getApplicationContext(),
-                        watchFace,
-                        complicationIds[1],
-                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
-                complicationProviderName(1)));
-        items.add(new ConfigItem("Right \ncomplication",
-                getDrawable(R.drawable.ic_right_complication_black_24dp),
-                ComplicationHelperActivity.createProviderChooserHelperIntent(
-                        getApplicationContext(),
-                        watchFace,
-                        complicationIds[2],
-                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[2]),
-                complicationProviderName(2)));
-        items.add(new ConfigItem("Color",
-                getDrawable(R.drawable.ic_color_lens_black_24dp),
-                new Intent(ConfigActivity.this, ConfigColorActivity.class),
-                mPrefs.getString("setting_color_name", "Cyan")));
-        items.add(new ConfigItem("Background",
-                getDrawable(R.drawable.ic_background_black_24dp),
-                ComplicationHelperActivity.createProviderChooserHelperIntent(
-                        getApplicationContext(),
-                        watchFace,
-                        complicationIds[3],
-                        WatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
-                complicationProviderName(3)));
-        BackgroundEffect backgroundEffect = BackgroundEffect.fromValue(
+        BackgroundEffect backgroundEffect = BackgroundEffect.NONE.fromValue(
                 mPrefs.getInt("setting_background_effect",
                         BackgroundEffect.NONE.getValue()
                 )
         );
-        items.add(new ConfigItem("Background effect",
-                getDrawable(R.drawable.ic_background_effect_black_24dp),
-                null,
-                backgroundEffect.toString()));
-        NotificationIndicator notificationIndicator = NotificationIndicator.fromValue(
+        NotificationIndicator notificationIndicator = NotificationIndicator.DISABLED.fromValue(
                 mPrefs.getInt("setting_notification_indicator",
                         NotificationIndicator.DISABLED.getValue()
                 )
         );
-        items.add(new ConfigItem("Notification indicator",
-                getDrawable(notificationIndicator == NotificationIndicator.DISABLED ? R.drawable.ic_notifications_off_black_24dp : R.drawable.ic_notifications_black_24dp),
-                null,
-                notificationIndicator.toString()));
-        items.add(new ConfigItem("Time format",
-                getDrawable(R.drawable.ic_time_black_24dp),
-                new Intent(Settings.ACTION_DATE_SETTINGS)));
-        return items;
+
+        ConfigItem[] items = {
+                new ConfigItem(
+                        "Top \ncomplication",
+                        ComplicationHelperActivity.createProviderChooserHelperIntent(
+                                getApplicationContext(),
+                                watchFace,
+                                WatchFaceService.COMPLICATION_IDS[0],
+                                WatchFaceService.COMPLICATION_SUPPORTED_TYPES[0]),
+                        getDrawable(R.drawable.ic_top_complication_black_24dp),
+                        complicationProviderName(WatchFaceService.COMPLICATION_IDS[0]),
+                        WatchFaceService.COMPLICATION_IDS[0]
+                ),
+                new ConfigItem(
+                        "Left \ncomplication",
+                        ComplicationHelperActivity.createProviderChooserHelperIntent(
+                                getApplicationContext(),
+                                watchFace,
+                                WatchFaceService.COMPLICATION_IDS[1],
+                                WatchFaceService.COMPLICATION_SUPPORTED_TYPES[1]),
+                        getDrawable(R.drawable.ic_left_complication_black_24dp),
+                        complicationProviderName(WatchFaceService.COMPLICATION_IDS[1]),
+                        WatchFaceService.COMPLICATION_IDS[1]
+                ),
+                new ConfigItem(
+                        "Right \ncomplication",
+                        ComplicationHelperActivity.createProviderChooserHelperIntent(
+                                getApplicationContext(),
+                                watchFace,
+                                WatchFaceService.COMPLICATION_IDS[2],
+                                WatchFaceService.COMPLICATION_SUPPORTED_TYPES[2]),
+                        getDrawable(R.drawable.ic_right_complication_black_24dp),
+                        complicationProviderName(WatchFaceService.COMPLICATION_IDS[2]),
+                        WatchFaceService.COMPLICATION_IDS[2]
+                ),
+                new ConfigItem(
+                        "Color",
+                        new Intent(ConfigActivity.this, ConfigColorActivity.class),
+                        getDrawable(R.drawable.ic_color_lens_black_24dp),
+                        mPrefs.getString("setting_color_name", "Cyan")
+                ),
+                new ConfigItem(
+                        "Background",
+                        ComplicationHelperActivity.createProviderChooserHelperIntent(
+                                getApplicationContext(),
+                                watchFace,
+                                WatchFaceService.COMPLICATION_IDS[3],
+                                WatchFaceService.COMPLICATION_SUPPORTED_TYPES[3]),
+                        getDrawable(R.drawable.ic_background_black_24dp),
+                        complicationProviderName(WatchFaceService.COMPLICATION_IDS[3]),
+                        WatchFaceService.COMPLICATION_IDS[3]
+                ),
+                new ConfigItem(
+                        "Background effect",
+                        null,
+                        getDrawable(R.drawable.ic_background_effect_black_24dp),
+                        backgroundEffect.toString(),
+                        "setting_background_effect",
+                        backgroundEffect
+                ),
+                new ConfigItem(
+                        "Notification indicator",
+                        null,
+                        getDrawable(notificationIndicator == NotificationIndicator.DISABLED ?
+                                R.drawable.ic_notifications_off_black_24dp :
+                                R.drawable.ic_notifications_black_24dp),
+                        notificationIndicator.toString(),
+                        "setting_notification_indicator",
+                        notificationIndicator
+                ),
+                new ConfigItem(
+                        "Time format",
+                        new Intent(Settings.ACTION_DATE_SETTINGS),
+                        getDrawable(R.drawable.ic_time_black_24dp),
+                        null
+                )
+        };
+        return new ArrayList<>(Arrays.asList(items));
     }
 }

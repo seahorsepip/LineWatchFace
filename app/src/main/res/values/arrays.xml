@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string-array name="line_watch_face_names">
-        <item>Left\ncomplication</item>
-        <item>Right\ncomplication</item>
-        <item>Color</item>
-        <item>Background</item>
-    </string-array>
     <array name="line_watch_face_color_names">
         <item>Red</item>
         <item>Pink</item>

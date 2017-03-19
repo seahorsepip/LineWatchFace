@@ -4,11 +4,13 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
-import android.graphics.drawable.Drawable;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.wearable.activity.WearableActivity;
 import android.support.wearable.view.WearableRecyclerView;
+
+import org.jraf.android.androidwearcolorpicker.app.ColorPickActivity;
 
 import java.util.ArrayList;
 
@@ -51,26 +53,48 @@ public class ConfigColorActivity extends WearableActivity implements ConfigAdapt
 
     @Override
     public void onItemSelected(int position) {
+        if (position > 0) {
+            SharedPreferences.Editor mEditor = mPrefs.edit();
+            mEditor.putString("setting_color_name", color_names[position - 1]);
+            mEditor.putInt("setting_color_value", color_values[position - 1]);
+            mEditor.commit();
+            setResult(Activity.RESULT_OK, new Intent());
+            finish();
+        } else {
+            Intent intent = new ColorPickActivity.IntentBuilder().oldColor(mPrefs.getInt("setting_color_value", Color.parseColor("#18FFFF"))).build(this);
+            startActivityForResult(intent, 0);
+        }
+    }
 
-        SharedPreferences.Editor mEditor = mPrefs.edit();
-        mEditor.putString("setting_color_name", color_names[position]);
-        mEditor.putInt("setting_color_value", color_values[position]);
-        mEditor.commit();
-        setResult(Activity.RESULT_OK, new Intent());
-        finish();
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            SharedPreferences.Editor mEditor = mPrefs.edit();
+            mEditor.putString("setting_color_name", "Custom");
+            mEditor.putInt("setting_color_value", ColorPickActivity.getPickedColor(data));
+            mEditor.commit();
+            setResult(Activity.RESULT_OK, new Intent());
+            finish();
+        }
     }
 
     private ArrayList<ConfigItem> getConfigurationItems() {
+        float radius = 20 * getResources().getDisplayMetrics().density;
         ArrayList<ConfigItem> items = new ArrayList<>();
+        items.add(new ConfigItem(
+                "Custom",
+                null,
+                new ConfigDrawable(radius, getDrawable(R.drawable.ic_colorize_black_24dp)),
+                null
+        ));
         for (int i = 0; i < color_names.length; i++) {
-            final int color = color_values[i];
-            float radius = 20 * getResources().getDisplayMetrics().density;
-            Drawable drawable = new ConfigDrawable(radius, color);
-            items.add(new ConfigItem(color_names[i],
-                    drawable,
+            items.add(new ConfigItem(
+                    color_names[i],
                     null,
-                    null));
-            ;
+                    new ConfigDrawable(radius, color_values[i]),
+                    null
+            ));
         }
 
         return items;
