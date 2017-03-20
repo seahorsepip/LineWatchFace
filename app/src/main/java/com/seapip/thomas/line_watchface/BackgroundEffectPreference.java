@@ -1,6 +1,6 @@
 package com.seapip.thomas.line_watchface;
 
-public enum  BackgroundEffect implements Preference {
+public enum BackgroundEffectPreference implements Preference {
     NONE(0),
     DARKEN(1),
     BLUR(2),
@@ -8,7 +8,7 @@ public enum  BackgroundEffect implements Preference {
 
     private int value;
 
-    BackgroundEffect(int value) {
+    BackgroundEffectPreference(int value) {
         this.value = value;
     }
 
@@ -18,10 +18,10 @@ public enum  BackgroundEffect implements Preference {
     }
 
     @Override
-    public BackgroundEffect fromValue(int value) {
-        for (BackgroundEffect backgroundEffect : BackgroundEffect.values()) {
-            if (backgroundEffect.getValue() == value) {
-                return backgroundEffect;
+    public BackgroundEffectPreference fromValue(int value) {
+        for (BackgroundEffectPreference backgroundEffectPreference : BackgroundEffectPreference.values()) {
+            if (backgroundEffectPreference.getValue() == value) {
+                return backgroundEffectPreference;
             }
         }
         return NONE;

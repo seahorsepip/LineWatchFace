@@ -75,7 +75,7 @@ public class ConfigAdapter extends WearableRecyclerView.Adapter<ConfigAdapter.Vi
             Drawable drawable = new ConfigDrawable(radius, data.get(position).getImage());
             holder.textView.setText(data.get(position).getTitle());
             holder.imageView.setImageDrawable(drawable);
-            String val = data.get(position).getValue();
+            String val = data.get(position).getText();
             if (val != null) {
                 holder.valueView.setText(val);
                 holder.valueView.setVisibility(View.VISIBLE);

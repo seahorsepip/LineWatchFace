@@ -1,13 +1,13 @@
 package com.seapip.thomas.line_watchface;
 
-public enum NotificationIndicator implements Preference {
+public enum NotificationIndicatorPreference implements Preference {
     DISABLED(0),
     UNREAD(1),
     ALL(2);
 
     private int value;
 
-    NotificationIndicator(int value) {
+    NotificationIndicatorPreference(int value) {
         this.value = value;
     }
 
@@ -17,10 +17,10 @@ public enum NotificationIndicator implements Preference {
     }
 
     @Override
-    public NotificationIndicator fromValue(int value) {
-        for (NotificationIndicator notificationIndicator : NotificationIndicator.values()) {
-            if (notificationIndicator.getValue() == value) {
-                return notificationIndicator;
+    public NotificationIndicatorPreference fromValue(int value) {
+        for (NotificationIndicatorPreference notificationIndicatorPreference : NotificationIndicatorPreference.values()) {
+            if (notificationIndicatorPreference.getValue() == value) {
+                return notificationIndicatorPreference;
             }
         }
         return DISABLED;

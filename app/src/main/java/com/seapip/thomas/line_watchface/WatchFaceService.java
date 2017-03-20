@@ -521,18 +521,19 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     if (largeImage != null && !(mAmbient && (mBurnInProtection || mLowBitAmbient))) {
                         Drawable drawable = largeImage.loadDrawable(getApplicationContext());
                         if (drawable != null) {
-                            BackgroundEffect backgroundEffect = BackgroundEffect.NONE.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffect.NONE.getValue()));
-                            switch (backgroundEffect) {
+                            BackgroundEffectPreference backgroundEffectPreference = BackgroundEffectPreference.NONE.fromValue(mPrefs.getInt("setting_background_effect", BackgroundEffectPreference.NONE.getValue()));
+                            switch (backgroundEffectPreference) {
                                 case BLUR:
                                 case DARKEN_BLUR:
                                     drawable = convertToBlur(drawable, 10);
                             }
-                            if (mAmbient) {
+                            AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
+                            if (mAmbient && ambientPreference == AmbientPreference.GRAYSCALE) {
                                 drawable = convertToGrayscale(drawable);
                             }
                             drawable.setBounds(0, 0, (int) mCenterX * 2, (int) mCenterY * 2);
                             drawable.draw(canvas);
-                            switch (backgroundEffect) {
+                            switch (backgroundEffectPreference) {
                                 case DARKEN:
                                 case DARKEN_BLUR:
                                     canvas.drawRect(0, 0, mCenterX * 2, mCenterY * 2, mBackgroundOverlayPaint);
@@ -741,7 +742,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
             if (smallImage != null && !(mAmbient && mBurnInProtection)) {
                 Drawable drawable = smallImage.loadDrawable(getApplicationContext());
                 if (drawable != null) {
-                    if (mAmbient) {
+                    AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
+                    if (mAmbient && ambientPreference == AmbientPreference.GRAYSCALE) {
                         drawable = convertToGrayscale(drawable);
                     }
                     int size = Math.round(radius - mComplicationCirclePaint.getStrokeWidth() / 2);
@@ -826,7 +828,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void drawWatchFace(Canvas canvas) {
             mPrimaryColor = mPrefs.getInt("setting_color_value", Color.parseColor("#18FFFF"));
-            if (!mAmbient) {
+            AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
+            if (!mAmbient || ambientPreference == AmbientPreference.COLOR) {
                 mHourPaint.setColor(mPrimaryColor);
                 mMinutePaint.setColor(mPrimaryColor);
             }
@@ -928,7 +931,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void drawNotificationCount(Canvas canvas) {
             int count = 0;
-            NotificationIndicator notificationCount = NotificationIndicator.DISABLED.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicator.DISABLED.getValue()));
+            NotificationIndicatorPreference notificationCount = NotificationIndicatorPreference.DISABLED.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicatorPreference.DISABLED.getValue()));
             switch (notificationCount) {
                 case UNREAD:
                     count = mUnreadNotificationCount;
