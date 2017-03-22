@@ -54,8 +54,9 @@
 
         <activity android:name="android.support.wearable.complications.ComplicationHelperActivity" />
         <activity android:name=".ConfigColorActivity" />
+        <activity android:name=".ColorActivity" />
         <activity
-            android:name=".ConfigActivity"
+            android:name=".SettingsActivity"
             android:label="Settings">
             <intent-filter>
                 <action android:name="com.example.android.wearable.watchface.CONFIG_LINE_WATCH_FACE" />

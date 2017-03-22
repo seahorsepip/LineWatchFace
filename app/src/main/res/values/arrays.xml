@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <array name="line_watch_face_color_names">
+    <array name="color_names">
         <item>Red</item>
         <item>Pink</item>
         <item>Purple</item>
@@ -21,8 +21,9 @@
         <item>Grey</item>
         <item>Blue grey</item>
         <item>White</item>
+        <item>Black</item>
     </array>
-    <array name="line_watch_face_color_values">
+    <array name="color_values">
         <item>#FF5252</item>
         <item>#FF4081</item>
         <item>#E040FB</item>
@@ -43,5 +44,32 @@
         <item>#BDBDBD</item>
         <item>#90A4AE</item>
         <item>#ffffff</item>
+        <item>#000000</item>
     </array>
+    <string-array name="background_effect_items">
+        <item>Darken</item>
+        <item>Blur</item>
+        <item>Grayscale</item>
+    </string-array>
+    <string-array name="background_effect_values">
+        <item>@string/background_effect_darken</item>
+        <item>@string/background_effect_blur</item>
+        <item>@string/background_effect_grayscale</item>
+    </string-array>
+    <string-array name="notification_items">
+        <item>Disabled</item>
+        <item>Unread notifications</item>
+        <item>All notifications</item>
+    </string-array>
+    <string-array name="notification_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <array name="notification_icons">
+        <item>@drawable/ic_notifications_off_black_24dp</item>
+        <item>@drawable/ic_notifications_black_24dp</item>
+        <item>@drawable/ic_notifications_active_black_24dp</item>
+    </array>
+    <string-array name="empty_array" />
 </resources>

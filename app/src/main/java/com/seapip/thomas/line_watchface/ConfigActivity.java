@@ -26,7 +26,6 @@ import java.util.concurrent.Executor;
 public class ConfigActivity extends WearableActivity implements ConfigAdapter.ItemSelectedListener {
     private ConfigAdapter mAdapter;
     private SharedPreferences mPrefs;
-    private WearableRecyclerView mWearableRecyclerView;
     private SparseArray<ComplicationProviderInfo> complicationProviderInfos;
 
     @Override
@@ -35,7 +34,7 @@ public class ConfigActivity extends WearableActivity implements ConfigAdapter.It
         setContentView(R.layout.activity_config);
         mAdapter = new ConfigAdapter(getApplicationContext(), new ArrayList<ConfigItem>());
         mAdapter.setListener(ConfigActivity.this);
-        mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
+        WearableRecyclerView mWearableRecyclerView = (WearableRecyclerView) findViewById(R.id.recycler_launcher_view);
         mWearableRecyclerView.setAdapter(mAdapter);
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());

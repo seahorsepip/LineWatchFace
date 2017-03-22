@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="top_level_settings_screen">
+    <Preference
+        android:icon="@drawable/ic_right_complication_black_24dp"
+        android:key="complications_screen"
+        android:title="Complications">
+    </Preference>
+    <Preference
+        android:icon="@drawable/ic_color_lens_black_24dp"
+        android:key="color"
+        android:title="Color" />
+    <Preference
+        android:icon="@drawable/ic_background_black_24dp"
+        android:key="background_settings_screen"
+        android:title="Background">
+    </Preference>
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="settings_ambient"
+        android:summaryOff="Color"
+        android:summaryOn="Grayscale"
+        android:title="Ambient" />
+    <ListPreference
+        android:defaultValue="0"
+        android:dialogTitle=""
+        android:entries="@array/notification_items"
+        android:entryValues="@array/notification_values"
+        android:icon="@drawable/ic_notifications_black_24dp"
+        android:key="settings_notification_indicator"
+        android:negativeButtonText=""
+        android:summary="%s"
+        android:title="Notification indicator">
+        <extra
+            android:name="icons"
+            android:value="notification_icons" />
+    </ListPreference>
+    <Preference
+        android:icon="@drawable/ic_time_black_24dp"
+        android:key="time_format"
+        android:title="Time format" />
+</PreferenceScreen>

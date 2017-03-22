@@ -36,8 +36,8 @@ public class ConfigColorActivity extends WearableActivity implements ConfigAdapt
 
         mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
-        color_names = getResources().getStringArray(R.array.line_watch_face_color_names);
-        TypedArray color_values_typed = getResources().obtainTypedArray(R.array.line_watch_face_color_values);
+        color_names = getResources().getStringArray(R.array.color_names);
+        TypedArray color_values_typed = getResources().obtainTypedArray(R.array.color_values);
         color_values = new int[color_names.length];
         for (int i = 0; i < color_names.length; i++) {
             color_values[i] = color_values_typed.getColor(i, 0);

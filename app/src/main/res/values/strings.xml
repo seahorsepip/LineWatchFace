@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Line Watch Face</string>
     <string name="name">Line</string>
+    <string name="background_effect_darken">darken</string>
+    <string name="background_effect_blur">blur</string>
+    <string name="background_effect_grayscale">grayscale</string>
+    <string name="default_background_color">Black</string>
 </resources>

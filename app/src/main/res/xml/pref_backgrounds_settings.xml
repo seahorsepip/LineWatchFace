@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="Background">
+    <Preference
+        android:defaultValue="@string/default_background_color"
+        android:icon="@drawable/ic_color_lens_black_24dp"
+        android:key="settings_background_color_name"
+        android:summary="%s"
+        android:title="Color" />
+    <Preference
+        android:icon="@drawable/ic_image_black_24dp"
+        android:key="settings_background_complication"
+        android:title="Image">
+        <extra
+            android:name="id"
+            android:value="3" />
+    </Preference>
+    <com.seapip.thomas.line_watchface.MultiSelectListPreference
+        android:defaultValue="@array/empty_array"
+        android:dialogTitle=""
+        android:entries="@array/background_effect_items"
+        android:entryValues="@array/background_effect_values"
+        android:icon="@drawable/ic_image_filter_black_24dp"
+        android:key="settings_background_effects"
+        android:summary="%s"
+        android:title="Effects" />
+</PreferenceScreen>
