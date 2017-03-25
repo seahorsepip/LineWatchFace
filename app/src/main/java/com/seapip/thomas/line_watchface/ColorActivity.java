@@ -29,12 +29,18 @@ public class ColorActivity extends PreferenceActivity {
     public static class ColorPreferenceFragment extends PreferenceFragment {
 
         int oldColor;
+        int colorNamesId;
+        int colorValuesId;
 
         @Override
         public void onCreate(final Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
 
-            oldColor = getArguments().getInt("color");
+            Bundle bundle = getArguments();
+
+            oldColor = bundle.getInt("color");
+            colorNamesId = bundle.getInt("color_names_id");
+            colorValuesId = bundle.getInt("color_values_id");
 
             PreferenceScreen preferenceScreen = getPreferenceManager().createPreferenceScreen(getContext());
             setPreferenceScreen(preferenceScreen);
@@ -43,6 +49,8 @@ public class ColorActivity extends PreferenceActivity {
         @Override
         public void onStart() {
             super.onStart();
+
+            getPreferenceScreen().removeAll();
 
             Preference customPreference = new Preference(getContext());
             customPreference.setTitle("Custom");
@@ -56,8 +64,8 @@ public class ColorActivity extends PreferenceActivity {
             setStyleIcon(customPreference, getContext().getDrawable(R.drawable.ic_colorize_black_24dp), Color.WHITE);
             getPreferenceScreen().addPreference(customPreference);
 
-            String[] colorNames = getResources().getStringArray(R.array.color_names);
-            TypedArray colorValues = getResources().obtainTypedArray(R.array.color_values);
+            String[] colorNames = getResources().getStringArray(colorNamesId);
+            TypedArray colorValues = getResources().obtainTypedArray(colorValuesId);
             for (int x = 0; x < colorNames.length; x++) {
                 Preference preference = new Preference(getContext());
                 final String name = colorNames[x];

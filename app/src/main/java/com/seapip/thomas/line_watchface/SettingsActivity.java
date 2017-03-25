@@ -9,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.os.Bundle;
 import android.preference.ListPreference;
+import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceFragment;
@@ -16,15 +17,19 @@ import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.XmlRes;
 import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
+import android.support.wearable.complications.ProviderInfoRetriever;
 import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.concurrent.Executor;
 
 public class SettingsActivity extends PreferenceActivity {
 
@@ -42,8 +47,11 @@ public class SettingsActivity extends PreferenceActivity {
     public static class SettingsPreferenceFragment extends PreferenceFragment implements
             SharedPreferences.OnSharedPreferenceChangeListener {
 
-        final private int BACKGROUND_COLOR_REQUEST = 10;
+        final private int COLOR_REQUEST = 10;
+        final private int BACKGROUND_COLOR_REQUEST = 11;
+
         int resource;
+        ProviderInfoRetriever providerInfoRetriever;
 
         @Override
         public void onCreate(final Bundle savedInstanceState) {
@@ -52,6 +60,41 @@ public class SettingsActivity extends PreferenceActivity {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(resource);
             updateAll(getPreferenceScreen());
+        }
+
+        @Override
+        public void addPreferencesFromResource(@XmlRes int preferencesResId) {
+            super.addPreferencesFromResource(preferencesResId);
+
+            Executor executor = new Executor() {
+                @Override
+                public void execute(@NonNull Runnable r) {
+                    new Thread(r).start();
+                }
+            };
+
+            ProviderInfoRetriever.OnProviderInfoReceivedCallback callback = new ProviderInfoRetriever.OnProviderInfoReceivedCallback() {
+                @Override
+                public void onProviderInfoReceived(int i, @Nullable ComplicationProviderInfo complicationProviderInfo) {
+                    setComplicationSummary(i, complicationProviderInfo);
+                }
+            };
+
+
+            providerInfoRetriever = new ProviderInfoRetriever(getContext(), executor);
+
+            providerInfoRetriever.init();
+            providerInfoRetriever.retrieveProviderInfo(callback,
+                    new ComponentName(
+                            getContext(),
+                            WatchFaceService.class),
+                    WatchFaceService.COMPLICATION_IDS);
+        }
+
+        @Override
+        public void onDestroy() {
+            super.onDestroy();
+            providerInfoRetriever.release();
         }
 
         @Override
@@ -70,7 +113,6 @@ public class SettingsActivity extends PreferenceActivity {
                 case "settings_right_complication":
                 case "settings_background_complication":
                     int id = extras.getInt("id");
-                    Log.d("LINE", String.valueOf(id));
                     startActivityForResult(
                             ComplicationHelperActivity.createProviderChooserHelperIntent(
                                     getContext(),
@@ -78,6 +120,13 @@ public class SettingsActivity extends PreferenceActivity {
                                             WatchFaceService.class),
                                     id,
                                     WatchFaceService.COMPLICATION_SUPPORTED_TYPES[id]), id);
+                    break;
+                case "settings_color_name":
+                    intent = new Intent(getContext(), ColorActivity.class);
+                    intent.putExtra("color", getPreferenceScreen().getSharedPreferences().getInt("settings_color_value", Color.parseColor("#18FFFF")));
+                    intent.putExtra("color_names_id", R.array.color_names);
+                    intent.putExtra("color_values_id", R.array.color_values);
+                    startActivityForResult(intent, COLOR_REQUEST);
                     break;
                 case "background_settings_screen":
                     intent = new Intent(getContext(), SettingsActivity.class);
@@ -87,6 +136,8 @@ public class SettingsActivity extends PreferenceActivity {
                 case "settings_background_color_name":
                     intent = new Intent(getContext(), ColorActivity.class);
                     intent.putExtra("color", getPreferenceScreen().getSharedPreferences().getInt("settings_background_color_value", Color.BLACK));
+                    intent.putExtra("color_names_id", R.array.background_color_names);
+                    intent.putExtra("color_values_id", R.array.background_color_values);
                     startActivityForResult(intent, BACKGROUND_COLOR_REQUEST);
                     break;
                 case "time_format":
@@ -99,22 +150,24 @@ public class SettingsActivity extends PreferenceActivity {
         @Override
         public void onActivityResult(int requestCode, int resultCode, Intent data) {
             super.onActivityResult(requestCode, resultCode, data);
-            Log.d("LINE", String.valueOf(requestCode));
+            SharedPreferences.Editor editor = getPreferenceScreen().getSharedPreferences().edit();
             if (resultCode == RESULT_OK) {
                 switch (requestCode) {
                     case 0:
                     case 1:
                     case 2:
                     case 3:
-                        ComplicationProviderInfo complicationProviderInfo = data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO);
+                        setComplicationSummary(requestCode, (ComplicationProviderInfo) data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO));
+                        break;
+                    case COLOR_REQUEST:
+                        editor.putString("settings_color_name", data.getStringExtra("color_name"));
+                        editor.putInt("settings_color_value", data.getIntExtra("color_value", 0));
+                        editor.apply();
+                        setSummary("settings_color_name");
                         break;
                     case BACKGROUND_COLOR_REQUEST:
-                        Log.d("LINE", "oops!");
-                        SharedPreferences.Editor editor = getPreferenceScreen().getSharedPreferences().edit();
-                        String colorName = data.getStringExtra("color_name");
-                        int colorValue = data.getIntExtra("color_value", 0);
-                        editor.putString("settings_background_color_name", colorName);
-                        editor.putInt("settings_background_color_value", colorValue);
+                        editor.putString("settings_background_color_name", data.getStringExtra("color_name"));
+                        editor.putInt("settings_background_color_value", data.getIntExtra("color_value", 0));
                         editor.apply();
                         setSummary("settings_background_color_name");
                         break;
@@ -191,9 +244,36 @@ public class SettingsActivity extends PreferenceActivity {
 
         private void setSummary(String key) {
             Preference preference = findPreference(key);
-            PreferenceManager.setDefaultValues(getActivity(), resource, false);
-            String value = PreferenceManager.getDefaultSharedPreferences(getContext()).getString(key, "uhh?");
-            preference.setSummary(value);
+            if (preference != null) {
+                PreferenceManager.setDefaultValues(getContext(), resource, false);
+                String value = PreferenceManager.getDefaultSharedPreferences(getContext()).getString(key, null);
+                preference.setSummary(value);
+            }
+        }
+
+        private void setComplicationSummary(int id, ComplicationProviderInfo providerInfo) {
+            String key;
+            switch (id) {
+                case 0:
+                    key = "settings_top_complication";
+                    break;
+                case 1:
+                    key = "settings_left_complication";
+                    break;
+                case 2:
+                    key = "settings_right_complication";
+                    break;
+                case 3:
+                    key = "settings_background_complication";
+                    break;
+                default:
+                    return;
+            }
+            Preference preference = findPreference(key);
+            if (preference != null) {
+                String providerName = providerInfo != null ? providerInfo.providerName : "Empty";
+                preference.setSummary(providerName);
+            }
         }
     }
 }

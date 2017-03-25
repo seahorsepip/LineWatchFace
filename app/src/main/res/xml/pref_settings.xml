@@ -2,24 +2,43 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     android:key="top_level_settings_screen">
     <Preference
+        android:icon="@drawable/ic_top_complication_black_24dp"
+        android:key="settings_top_complication"
+        android:title="Top \ncomplication">
+        <extra
+            android:name="id"
+            android:value="0" />
+    </Preference>
+    <Preference
+        android:icon="@drawable/ic_left_complication_black_24dp"
+        android:key="settings_left_complication"
+        android:title="Left \ncomplication">
+        <extra
+            android:name="id"
+            android:value="1" />
+    </Preference>
+    <Preference
         android:icon="@drawable/ic_right_complication_black_24dp"
-        android:key="complications_screen"
-        android:title="Complications">
+        android:key="settings_right_complication"
+        android:title="Right \ncomplication">
+        <extra
+            android:name="id"
+            android:value="2" />
     </Preference>
     <Preference
         android:icon="@drawable/ic_color_lens_black_24dp"
-        android:key="color"
-        android:title="Color" />
+        android:key="settings_color_name"
+        android:title="Color"
+        android:summary="%s"/>
     <Preference
         android:icon="@drawable/ic_background_black_24dp"
         android:key="background_settings_screen"
-        android:title="Background">
-    </Preference>
+        android:title="Background"/>
     <SwitchPreference
-        android:defaultValue="true"
+        android:defaultValue="false"
         android:key="settings_ambient"
-        android:summaryOff="Color"
-        android:summaryOn="Grayscale"
+        android:summaryOn="Color"
+        android:summaryOff="Grayscale"
         android:title="Ambient" />
     <ListPreference
         android:defaultValue="0"
@@ -35,8 +54,15 @@
             android:name="icons"
             android:value="notification_icons" />
     </ListPreference>
-    <Preference
+    <ListPreference
+        android:defaultValue="0"
+        android:dialogTitle=""
+        android:entries="@array/time_format_items"
+        android:entryValues="@array/time_format_values"
         android:icon="@drawable/ic_time_black_24dp"
-        android:key="time_format"
-        android:title="Time format" />
+        android:key="settings_time_format"
+        android:negativeButtonText=""
+        android:summary="%s"
+        android:title="Time format">
+    </ListPreference>
 </PreferenceScreen>

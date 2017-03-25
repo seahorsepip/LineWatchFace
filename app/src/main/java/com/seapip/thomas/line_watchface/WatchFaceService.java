@@ -55,6 +55,7 @@ import android.support.wearable.complications.ComplicationText;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Gravity;
 import android.view.SurfaceHolder;
@@ -125,14 +126,16 @@ public class WatchFaceService extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine {
         /* Handler to update the time once a second in interactive mode. */
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
-
-        /* Settings */
         boolean mBackgroundEffectDarken;
         boolean mBackgroundEffectBlur;
         boolean mBackgroundEffectGrayscale;
         boolean mAmbientColor;
-        Set<String> mSettingNotificationIndicator;
-
+        boolean mNotificationIndicatorUnread;
+        boolean mNotificationIndicatorAll;
+        boolean mTimeFormat24;
+        boolean mTimeFormat12;
+        private int mPrimaryColor;
+        private int mBackgroundColor;
         private Calendar mCalendar;
         private final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -145,11 +148,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
         private float mCenterX;
         private float mCenterY;
         /* Colors */
-        private int mPrimaryColor;
         private int mSecondaryColor;
         private int mTertiaryColor;
         private int mQuaternaryColor;
-        private int mBackgroundColor;
         private Paint mBackgroundOverlayPaint;
         private Paint mHourPaint;
         private Paint mMinutePaint;
@@ -204,6 +205,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
             initializeComplication();
             initializeWatchFace();
             initializeNotificationCount();
+
+            getSettingValues();
         }
 
         private void initializeBackground() {
@@ -500,17 +503,26 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mNotificationCount = count;
         }
 
+        private void getSettingValues() {
+            mPrimaryColor = mPrefs.getInt("settings_color_value", Color.parseColor("#18FFFF"));
+            mBackgroundColor = mPrefs.getInt("settings_background_color_value", Color.BLACK);
+            Set<String> backgroundEffects = mPrefs.getStringSet("settings_background_effects", null);
+            mBackgroundEffectDarken = backgroundEffects != null && backgroundEffects.contains("0");
+            mBackgroundEffectBlur = backgroundEffects != null && backgroundEffects.contains("1");
+            mBackgroundEffectGrayscale = backgroundEffects != null && backgroundEffects.contains("2");
+            mAmbientColor = mPrefs.getBoolean("settings_ambient", false);
+            String mNotificationIndicator = mPrefs.getString("settings_notification_indicator", null);
+            mNotificationIndicatorUnread = mNotificationIndicator != null && mNotificationIndicator.equals("1");
+            mNotificationIndicatorAll = mNotificationIndicator != null && mNotificationIndicator.equals("2");
+            String mTimeFormat = mPrefs.getString("settings_time_format", null);
+            mTimeFormat24 = mTimeFormat != null && mTimeFormat.equals("1");
+            mTimeFormat12 = mTimeFormat != null && mTimeFormat.equals("2");
+        }
+
         @Override
         public void onDraw(Canvas canvas, Rect bounds) {
             long now = System.currentTimeMillis();
             mCalendar.setTimeInMillis(now);
-
-            mPrimaryColor = mPrefs.getInt("settings_color_value", Color.parseColor("#18FFFF"));
-            Set<String> backgroundEffects = mPrefs.getStringSet("settings_background_effects", null);
-            mBackgroundEffectDarken = backgroundEffects != null && backgroundEffects.contains(getResources().getString(R.string.background_effect_darken));
-            mBackgroundEffectBlur = backgroundEffects != null && backgroundEffects.contains(getResources().getString(R.string.background_effect_blur));
-            mBackgroundEffectGrayscale = backgroundEffects != null && backgroundEffects.contains(getResources().getString(R.string.background_effect_grayscale));
-            mBackgroundColor = mPrefs.getInt("settings_background_color_value", Color.BLACK);
 
             drawBackground(canvas, now, BACKGROUND_COMPLICATION);
             drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2);
@@ -532,8 +544,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                             if (mBackgroundEffectBlur) {
                                 drawable = convertToBlur(drawable, 10);
                             }
-                            AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
-                            if (mBackgroundEffectGrayscale || (mAmbient && ambientPreference == AmbientPreference.GRAYSCALE)) {
+                            if (mBackgroundEffectGrayscale || (mAmbient && !mAmbientColor)) {
                                 drawable = convertToGrayscale(drawable);
                             }
                             drawable.setBounds(0, 0, (int) mCenterX * 2, (int) mCenterY * 2);
@@ -745,8 +756,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             if (smallImage != null && !(mAmbient && mBurnInProtection)) {
                 Drawable drawable = smallImage.loadDrawable(getApplicationContext());
                 if (drawable != null) {
-                    AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
-                    if (mAmbient && ambientPreference == AmbientPreference.GRAYSCALE) {
+                    if (mAmbient && !mAmbientColor) {
                         drawable = convertToGrayscale(drawable);
                     }
                     int size = Math.round(radius - mComplicationCirclePaint.getStrokeWidth() / 2);
@@ -830,8 +840,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
         }
 
         private void drawWatchFace(Canvas canvas) {
-            AmbientPreference ambientPreference = AmbientPreference.GRAYSCALE.fromValue(mPrefs.getInt("setting_ambient", AmbientPreference.GRAYSCALE.getValue()));
-            if (!mAmbient || ambientPreference == AmbientPreference.COLOR) {
+            if (!mAmbient || mAmbientColor) {
                 mHourPaint.setColor(mPrimaryColor);
                 mMinutePaint.setColor(mPrimaryColor);
             }
@@ -919,7 +928,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             }
 
             String hourString;
-            if (DateFormat.is24HourFormat(WatchFaceService.this)) {
+            if ((DateFormat.is24HourFormat(WatchFaceService.this) && !mTimeFormat24 && !mTimeFormat12) || mTimeFormat24) {
                 hourString = String.valueOf(mCalendar.get(Calendar.HOUR_OF_DAY));
             } else {
                 int hour = mCalendar.get(Calendar.HOUR);
@@ -933,14 +942,11 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void drawNotificationCount(Canvas canvas) {
             int count = 0;
-            NotificationIndicatorPreference notificationCount = NotificationIndicatorPreference.DISABLED.fromValue(mPrefs.getInt("setting_notification_indicator", NotificationIndicatorPreference.DISABLED.getValue()));
-            switch (notificationCount) {
-                case UNREAD:
-                    count = mUnreadNotificationCount;
-                    break;
-                case ALL:
-                    count = mNotificationCount;
-                    break;
+            if (mNotificationIndicatorUnread) {
+                count = mUnreadNotificationCount;
+            } else if (mNotificationIndicatorAll) {
+                count = mNotificationCount;
+                Log.d("LINE", "ALL");
             }
             if (count > 0) {
                 canvas.drawRect(0, mCenterY * 2 - 100, mCenterX * 2, mCenterY * 2, mNotificationBackgroundPaint);
@@ -957,6 +963,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 registerReceiver();
                 /* Update time zone in case it changed while we weren't visible. */
                 mCalendar.setTimeZone(TimeZone.getDefault());
+                getSettingValues();
                 invalidate();
             } else {
                 unregisterReceiver();

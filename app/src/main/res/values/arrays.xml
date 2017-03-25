@@ -21,7 +21,6 @@
         <item>Grey</item>
         <item>Blue grey</item>
         <item>White</item>
-        <item>Black</item>
     </array>
     <array name="color_values">
         <item>#FF5252</item>
@@ -44,6 +43,50 @@
         <item>#BDBDBD</item>
         <item>#90A4AE</item>
         <item>#ffffff</item>
+    </array>
+
+    <array name="background_color_names">
+        <item>Red</item>
+        <item>Pink</item>
+        <item>Purple</item>
+        <item>Deep purple</item>
+        <item>Indigo</item>
+        <item>Blue</item>
+        <item>Light blue</item>
+        <item>Cyan</item>
+        <item>Teal</item>
+        <item>Green</item>
+        <item>Light green</item>
+        <item>Lime</item>
+        <item>Yellow</item>
+        <item>Amber</item>
+        <item>Orange</item>
+        <item>Deep orange</item>
+        <item>Brown</item>
+        <item>Grey</item>
+        <item>Blue grey</item>
+        <item>Black</item>
+    </array>
+    <array name="background_color_values">
+        <item>#B71C1C</item>
+        <item>#880E4F</item>
+        <item>#4A148C</item>
+        <item>#311B92</item>
+        <item>#1A237E</item>
+        <item>#0D47A1</item>
+        <item>#01579B</item>
+        <item>#006064</item>
+        <item>#004D40</item>
+        <item>#1B5E20</item>
+        <item>#33691E</item>
+        <item>#827717</item>
+        <item>#F57F17</item>
+        <item>#FF6F00</item>
+        <item>#E65100</item>
+        <item>#BF360C</item>
+        <item>#3E2723</item>
+        <item>#212121</item>
+        <item>#263238</item>
         <item>#000000</item>
     </array>
     <string-array name="background_effect_items">
@@ -52,9 +95,9 @@
         <item>Grayscale</item>
     </string-array>
     <string-array name="background_effect_values">
-        <item>@string/background_effect_darken</item>
-        <item>@string/background_effect_blur</item>
-        <item>@string/background_effect_grayscale</item>
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
     </string-array>
     <string-array name="notification_items">
         <item>Disabled</item>
@@ -71,5 +114,15 @@
         <item>@drawable/ic_notifications_black_24dp</item>
         <item>@drawable/ic_notifications_active_black_24dp</item>
     </array>
+    <string-array name="time_format_items">
+        <item>Use watch settings</item>
+        <item>Use 24-hour format</item>
+        <item>Use 12-hour format</item>
+    </string-array>
+    <string-array name="time_format_values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
     <string-array name="empty_array" />
 </resources>
