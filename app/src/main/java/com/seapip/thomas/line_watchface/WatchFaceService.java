@@ -54,6 +54,8 @@ import android.support.wearable.complications.ComplicationHelperActivity;
 import android.support.wearable.complications.ComplicationText;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.SparseArray;
@@ -70,26 +72,29 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
     // Left and right dial supported types.
     public static final int[][] COMPLICATION_SUPPORTED_TYPES = {
-            {ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
-            {ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
-            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_RANGED_VALUE, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_ICON},
+            {ComplicationData.TYPE_LONG_TEXT, ComplicationData.TYPE_SHORT_TEXT, ComplicationData.TYPE_SMALL_IMAGE, ComplicationData.TYPE_ICON},
             {ComplicationData.TYPE_LARGE_IMAGE}
     };
     private static final int TOP_DIAL_COMPLICATION = 0;
     private static final int LEFT_DIAL_COMPLICATION = 1;
     private static final int RIGHT_DIAL_COMPLICATION = 2;
-    private static final int BACKGROUND_COMPLICATION = 3;
+    private static final int BOTTOM_DIAL_COMPLICATION = 3;
+    private static final int BACKGROUND_COMPLICATION = 4;
     public static final int[] COMPLICATION_IDS = {
             TOP_DIAL_COMPLICATION,
             LEFT_DIAL_COMPLICATION,
             RIGHT_DIAL_COMPLICATION,
+            BOTTOM_DIAL_COMPLICATION,
             BACKGROUND_COMPLICATION
     };
     /*
      * Update rate in milliseconds for interactive mode. We update once a second to advance the
      * second hand.
      */
-    private static final long INTERACTIVE_UPDATE_RATE_MS = 20;
+    private static final long INTERACTIVE_UPDATE_RATE_MS = 32;
 
     /**
      * Handler message id for updating the time periodically in interactive mode.
@@ -126,6 +131,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine {
         /* Handler to update the time once a second in interactive mode. */
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
+        boolean mComplicationBorder;
         boolean mBackgroundEffectDarken;
         boolean mBackgroundEffectBlur;
         boolean mBackgroundEffectGrayscale;
@@ -160,7 +166,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
         private Paint mComplicationArcValuePaint;
         private Paint mComplicationArcPaint;
         private Paint mComplicationCirclePaint;
+        private TextPaint mComplicationPrimaryLongTextPaint;
         private Paint mComplicationPrimaryTextPaint;
+        private TextPaint mComplicationLongTextPaint;
         private Paint mComplicationTextPaint;
         private Paint mNotificationBackgroundPaint;
         private Paint mNotificationCirclePaint;
@@ -243,6 +251,11 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mComplicationCirclePaint.setStrokeCap(Paint.Cap.SQUARE);
             mComplicationCirclePaint.setStyle(Paint.Style.STROKE);
 
+            mComplicationPrimaryLongTextPaint = new TextPaint();
+            mComplicationPrimaryLongTextPaint.setColor(mSecondaryColor);
+            mComplicationPrimaryLongTextPaint.setAntiAlias(true);
+            mComplicationPrimaryLongTextPaint.setTypeface(mFontBold);
+
             mComplicationPrimaryTextPaint = new Paint();
             mComplicationPrimaryTextPaint.setColor(mSecondaryColor);
             mComplicationPrimaryTextPaint.setAntiAlias(true);
@@ -252,6 +265,11 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mComplicationTextPaint.setColor(mTertiaryColor);
             mComplicationTextPaint.setAntiAlias(true);
             mComplicationTextPaint.setTypeface(mFontBold);
+
+            mComplicationLongTextPaint = new TextPaint();
+            mComplicationLongTextPaint.setColor(mTertiaryColor);
+            mComplicationLongTextPaint.setAntiAlias(true);
+            mComplicationLongTextPaint.setTypeface(mFontBold);
         }
 
         private void initializeWatchFace() {
@@ -357,6 +375,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 if (mLowBitAmbient) {
                     mHourTickPaint.setColor(Color.WHITE);
                     mComplicationArcValuePaint.setColor(Color.WHITE);
+                    mComplicationPrimaryLongTextPaint.setColor(Color.WHITE);
                     mComplicationPrimaryTextPaint.setColor(Color.WHITE);
                 }
                 if (mBurnInProtection) {
@@ -374,8 +393,12 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     mComplicationArcPaint.setStrokeWidth(2f);
                     mComplicationCirclePaint.setAntiAlias(false);
                     mComplicationCirclePaint.setStrokeWidth(2f);
+                    mComplicationPrimaryLongTextPaint.setTypeface(mFont);
+                    mComplicationPrimaryLongTextPaint.setAntiAlias(false);
                     mComplicationPrimaryTextPaint.setTypeface(mFont);
                     mComplicationPrimaryTextPaint.setAntiAlias(false);
+                    mComplicationLongTextPaint.setAntiAlias(false);
+                    mComplicationLongTextPaint.setTypeface(mFont);
                     mComplicationTextPaint.setAntiAlias(false);
                     mComplicationTextPaint.setTypeface(mFont);
                     mNotificationCirclePaint.setStyle(Paint.Style.STROKE);
@@ -404,9 +427,14 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 mComplicationArcPaint.setStrokeWidth(4f);
                 mComplicationCirclePaint.setAntiAlias(true);
                 mComplicationCirclePaint.setStrokeWidth(3f);
+                mComplicationPrimaryLongTextPaint.setColor(mSecondaryColor);
+                mComplicationPrimaryLongTextPaint.setTypeface(mFontBold);
+                mComplicationPrimaryLongTextPaint.setAntiAlias(true);
                 mComplicationPrimaryTextPaint.setColor(mSecondaryColor);
                 mComplicationPrimaryTextPaint.setTypeface(mFontBold);
                 mComplicationPrimaryTextPaint.setAntiAlias(true);
+                mComplicationLongTextPaint.setAntiAlias(true);
+                mComplicationLongTextPaint.setTypeface(mFontBold);
                 mComplicationTextPaint.setAntiAlias(true);
                 mComplicationTextPaint.setTypeface(mFontBold);
                 mNotificationCirclePaint.setStyle(Paint.Style.FILL_AND_STROKE);
@@ -431,7 +459,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mCenterY = height / 2;
 
             mHourPaint.setTextSize(width / 6);
+            mComplicationPrimaryLongTextPaint.setTextSize(width / 23);
             mComplicationPrimaryTextPaint.setTextSize(width / 18);
+            mComplicationLongTextPaint.setTextSize(width / 25);
             mComplicationTextPaint.setTextSize(width / 20);
             mNotificationTextPaint.setTextSize(width / 25);
 
@@ -505,6 +535,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void getSettingValues() {
             mPrimaryColor = mPrefs.getInt("settings_color_value", Color.parseColor("#18FFFF"));
+            mComplicationBorder = mPrefs.getBoolean("settings_complication_border", true);
             mBackgroundColor = mPrefs.getInt("settings_background_color_value", Color.BLACK);
             Set<String> backgroundEffects = mPrefs.getStringSet("settings_background_effects", null);
             mBackgroundEffectDarken = backgroundEffects != null && backgroundEffects.contains("0");
@@ -527,6 +558,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             drawBackground(canvas, now, BACKGROUND_COMPLICATION);
             drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2);
             drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, mCenterX / 2, mCenterY);
+            drawComplication(canvas, now, BOTTOM_DIAL_COMPLICATION, mCenterX, mCenterY * 1.5f);
             drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, mCenterX * 1.5f, mCenterY);
             drawWatchFace(canvas);
             drawNotificationCount(canvas);
@@ -534,7 +566,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void drawBackground(Canvas canvas, long currentTimeMillis, int id) {
             ComplicationData complicationData = mActiveComplicationDataSparseArray.get(id);
-            canvas.drawColor(mBackgroundColor);
+            canvas.drawColor(mAmbient && (mBurnInProtection || !mAmbientColor) ? Color.BLACK : mBackgroundColor);
             if ((complicationData != null) && (complicationData.isActive(currentTimeMillis))) {
                 if (complicationData.getType() == ComplicationData.TYPE_LARGE_IMAGE) {
                     Icon largeImage = complicationData.getLargeImage();
@@ -566,11 +598,20 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     case ComplicationData.TYPE_RANGED_VALUE:
                         drawRangeComplication(canvas,
                                 complicationData,
+                                currentTimeMillis,
                                 id);
                         break;
                     case ComplicationData.TYPE_SMALL_IMAGE:
                         drawSmallImageComplication(canvas,
                                 complicationData,
+                                centerX,
+                                centerY,
+                                id);
+                        break;
+                    case ComplicationData.TYPE_LONG_TEXT:
+                        drawLongTextComplication(canvas,
+                                complicationData,
+                                currentTimeMillis,
                                 centerX,
                                 centerY,
                                 id);
@@ -594,26 +635,54 @@ public class WatchFaceService extends CanvasWatchFaceService {
             }
         }
 
-        private void drawRangeComplication(Canvas canvas, ComplicationData data, int id) {
+        private String complicationNumberString(float val) {
+            if (val > 100000) {
+                return String.valueOf(Math.round(val / 100000) + "m");
+            } else if (val > 1000) {
+                return String.valueOf(Math.round(val / 1000) + "k");
+            } else {
+                return String.valueOf(Math.round(val));
+            }
+        }
+
+        private void drawRangeComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, int id) {
             float min = data.getMinValue();
             float max = data.getMaxValue();
             float val = data.getValue();
 
-            float centerX = mCenterX + mCenterX / 4 + 10;
-            float centerY = mCenterY + mCenterY / 4 + 10;
-            float radius = mCenterX / 2;
-            if (!mIsRound) {
-                radius *= 1.2f;
-            }
-            radius -= 20;
+            ComplicationData bottomComplicationData = mActiveComplicationDataSparseArray.get(BOTTOM_DIAL_COMPLICATION);
 
+
+            float centerX;
+            float centerY;
+            float radius;
             float startAngle = -90;
 
-            RectF tapBox = new RectF(centerX - radius,
+            /*
+            If bottom complication data exists then only the right space is available
+            instead of the bottom right space.
+            */
+            if (bottomComplicationData != null &&
+                    bottomComplicationData.getType() != ComplicationData.TYPE_EMPTY &&
+                    bottomComplicationData.getType() != ComplicationData.TYPE_NO_DATA &&
+                    bottomComplicationData.isActive(currentTimeMillis)) {
+                centerX = mCenterX * 1.5f;
+                centerY = mCenterY;
+                radius = mCenterX / 4;
+            } else {
+                centerX = mCenterX + mCenterX / 4 + 10;
+                centerY = mCenterY + mCenterY / 4 + 10;
+                radius = mCenterX / 2;
+                if (!mIsRound) {
+                    radius *= 1.2f;
+                }
+                radius -= 20;
+            }
+
+            mComplicationTapBoxes[id] = new RectF(centerX - radius,
                     centerY - radius,
                     centerX + radius,
                     centerY + radius);
-            mComplicationTapBoxes[id] = tapBox;
 
             Bitmap arcBitmap = Bitmap.createBitmap((int) radius * 2 + 4, (int) radius * 2 + 4, Bitmap.Config.ARGB_8888);
             Canvas arcCanvas = new Canvas(arcBitmap);
@@ -646,15 +715,14 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
             canvas.drawBitmap(arcBitmap, centerX - radius - 2, centerY - radius - 2, null);
 
-
             mComplicationTextPaint.setTextAlign(Paint.Align.RIGHT);
-            canvas.drawText(String.valueOf(Math.round(min)),
+            canvas.drawText(complicationNumberString(min),
                     centerX + -6,
                     centerY - radius - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent(),
                     mComplicationTextPaint);
 
             mComplicationTextPaint.setTextAlign(Paint.Align.LEFT);
-            canvas.drawText(String.valueOf(Math.round(max)),
+            canvas.drawText(complicationNumberString(max),
                     centerX - radius - 4,
                     centerY - 6,
                     mComplicationTextPaint);
@@ -670,19 +738,148 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 }
             } else {
                 mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(String.valueOf(Math.round(val)),
+                canvas.drawText(complicationNumberString(val),
                         centerX,
                         centerY - (mComplicationPrimaryTextPaint.descent() + mComplicationPrimaryTextPaint.ascent()) / 2,
                         mComplicationPrimaryTextPaint);
             }
         }
 
+        private void drawLongTextComplication(Canvas canvas, ComplicationData data,
+                                              long currentTimeMillis, float centerX,
+                                              float centerY, int id) {
+            ComplicationText text = data.getLongText();
+            String textText = text != null ? text.getText(getApplicationContext(), currentTimeMillis).toString() : null;
+            ComplicationText title = data.getLongTitle();
+            String titleText = title != null ? title.getText(getApplicationContext(), currentTimeMillis).toString().toUpperCase() : null;
+            Icon icon = mBurnInProtection && mAmbient && data.getBurnInProtectionIcon() != null ? data.getBurnInProtectionIcon() : data.getIcon();
+            Icon image = data.getSmallImage();
+
+            float height = mCenterY / 4;
+            float width = mCenterX * 1.2f;
+            float maxWidth = width;
+
+            Rect bounds = new Rect();
+            Rect bounds2 = new Rect();
+            float textWidth = 0;
+            float titleWidth = 0;
+            if (textText != null) {
+                mComplicationPrimaryLongTextPaint.getTextBounds(textText, 0, textText.length(), bounds);
+                textWidth = bounds.width() + height / 2;
+            }
+            if (titleText != null) {
+                mComplicationLongTextPaint.getTextBounds(titleText, 0, titleText.length(), bounds2);
+                titleWidth = bounds2.width() + height / 2;
+            }
+            if (textWidth > titleWidth && textWidth > 0) {
+                width = textWidth;
+            }
+            if (textWidth < titleWidth && titleWidth > 0) {
+                width = titleWidth;
+            }
+            if (image != null && !(mAmbient && mBurnInProtection)) {
+                width += height + 8;
+            } else if (icon != null) {
+                width += height;
+            }
+            boolean ellipsize = false;
+            if (width > maxWidth) {
+                width = maxWidth;
+                ellipsize = true;
+            }
+
+            RectF tapbox = new RectF(centerX - width / 2,
+                    centerY - height / 2,
+                    centerX + width / 2,
+                    centerY + height / 2);
+
+            mComplicationTapBoxes[id] = tapbox;
+
+            if (mComplicationBorder) {
+                Path path = new Path();
+                path.moveTo(tapbox.left + height / 2, tapbox.top);
+                path.lineTo(tapbox.right - height / 2, tapbox.top);
+                path.arcTo(tapbox.right - height, tapbox.top, tapbox.right, tapbox.bottom, -90, 180, false);
+                path.lineTo(tapbox.left + height / 2, tapbox.bottom);
+                path.arcTo(tapbox.left, tapbox.top, tapbox.left + height, tapbox.bottom, 90, 180, false);
+                canvas.drawPath(path, mComplicationCirclePaint);
+            }
+
+            mComplicationPrimaryLongTextPaint.setTextAlign(Paint.Align.CENTER);
+            mComplicationLongTextPaint.setTextAlign(Paint.Align.CENTER);
+
+            float textY = centerY - (mComplicationPrimaryLongTextPaint.descent() + mComplicationPrimaryLongTextPaint.ascent() / 2);
+            float textX = centerX;
+            float textW = width - height / 4;
+
+            if (image != null && !(mAmbient && mBurnInProtection)) {
+                Drawable drawable = image.loadDrawable(getApplicationContext());
+                if (drawable != null) {
+                    if (mAmbient && !mAmbientColor) {
+                        drawable = convertToGrayscale(drawable);
+                    }
+                    drawable = convertToCircle(drawable);
+                    drawable.setBounds(Math.round(tapbox.left + 2),
+                            Math.round(tapbox.top + 2),
+                            Math.round(tapbox.left + height - 2),
+                            Math.round(tapbox.bottom - 2));
+                    drawable.draw(canvas);
+
+                    mComplicationPrimaryLongTextPaint.setTextAlign(Paint.Align.LEFT);
+                    mComplicationLongTextPaint.setTextAlign(Paint.Align.LEFT);
+                    textX = tapbox.left + height + 8;
+                    textW = width - (textX - tapbox.left) - height / 4;
+                }
+            } else if (icon != null) {
+                Drawable drawable = icon.loadDrawable(getApplicationContext());
+                if (drawable != null) {
+                    drawable.setTint(mComplicationPrimaryLongTextPaint.getColor());
+                    int size = (int) Math.round(0.15 * mCenterX);
+                    drawable.setBounds(Math.round(tapbox.left + height / 2 - size / 2),
+                            Math.round(tapbox.top + height / 2 - size / 2),
+                            Math.round(tapbox.left + height / 2 + size / 2),
+                            Math.round(tapbox.top + height / 2 + size / 2));
+                    drawable.draw(canvas);
+
+                    mComplicationPrimaryLongTextPaint.setTextAlign(Paint.Align.LEFT);
+                    mComplicationLongTextPaint.setTextAlign(Paint.Align.LEFT);
+                    textX = tapbox.left + height;
+                    textW = width - (textX - tapbox.left) - height / 4;
+                }
+            }
+
+            if (title != null) {
+                canvas.drawText(
+                        ellipsize ? TextUtils.ellipsize(
+                                titleText,
+                                mComplicationLongTextPaint,
+                                textW,
+                                TextUtils.TruncateAt.END
+                        ).toString() : titleText,
+                        textX,
+                        centerY - mComplicationLongTextPaint.descent() - mComplicationLongTextPaint.ascent() + 4,
+                        mComplicationLongTextPaint);
+                textY = centerY - 4;
+            }
+
+            canvas.drawText(
+                    ellipsize ? TextUtils.ellipsize(
+                            textText,
+                            mComplicationPrimaryLongTextPaint,
+                            textW,
+                            TextUtils.TruncateAt.END
+                    ).toString() : textText,
+                    textX,
+                    textY,
+                    mComplicationPrimaryLongTextPaint);
+        }
+
         private void drawShortTextComplication(Canvas canvas, ComplicationData data,
                                                long currentTimeMillis, float centerX,
                                                float centerY, int id) {
             ComplicationText title = data.getShortTitle();
-            ComplicationText shortText = data.getShortText();
-            Icon icon = mBurnInProtection && mAmbient ? data.getBurnInProtectionIcon() : data.getIcon();
+            ComplicationText text = data.getShortText();
+            Icon icon = mBurnInProtection && mAmbient && data.getBurnInProtectionIcon() != null ? data.getBurnInProtectionIcon() : data.getIcon();
 
             float radius = mCenterX / 4;
 
@@ -691,12 +888,14 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     centerX + radius,
                     centerY + radius);
 
-            canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+            if (mComplicationBorder) {
+                canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+            }
 
             mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
             mComplicationTextPaint.setTextAlign(Paint.Align.CENTER);
 
-            float shortTextY = centerY - (mComplicationTextPaint.descent() + mComplicationTextPaint.ascent() / 2);
+            float textY = centerY - (mComplicationPrimaryTextPaint.descent() + mComplicationPrimaryTextPaint.ascent() / 2);
 
             if (icon != null) {
                 Drawable drawable = icon.loadDrawable(getApplicationContext());
@@ -705,19 +904,20 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     int size = (int) Math.round(0.15 * mCenterX);
                     drawable.setBounds(Math.round(centerX - size / 2), Math.round(centerY - size - 2), Math.round(centerX + size / 2), Math.round(centerY - 2));
                     drawable.draw(canvas);
+
+                    textY = centerY - mComplicationPrimaryTextPaint.descent() - mComplicationPrimaryTextPaint.ascent() + 4;
                 }
-                shortTextY = centerY - mComplicationPrimaryTextPaint.descent() - mComplicationPrimaryTextPaint.ascent() + 4;
             } else if (title != null) {
                 canvas.drawText(title.getText(getApplicationContext(), currentTimeMillis).toString().toUpperCase(),
                         centerX,
                         centerY - mComplicationTextPaint.descent() - mComplicationTextPaint.ascent() + 4,
                         mComplicationTextPaint);
-                shortTextY = centerY - 4;
+                textY = centerY - 4;
             }
 
-            canvas.drawText(shortText.getText(getApplicationContext(), currentTimeMillis).toString(),
+            canvas.drawText(text.getText(getApplicationContext(), currentTimeMillis).toString(),
                     centerX,
-                    shortTextY,
+                    textY,
                     mComplicationPrimaryTextPaint);
         }
 
@@ -738,7 +938,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     drawable.setTint(mComplicationPrimaryTextPaint.getColor());
                     drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
                     drawable.draw(canvas);
-                    canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+                    if (mComplicationBorder) {
+                        canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+                    }
                 }
             }
         }
@@ -767,7 +969,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     }
                     drawable.setBounds(Math.round(centerX - size), Math.round(centerY - size), Math.round(centerX + size), Math.round(centerY + size));
                     drawable.draw(canvas);
-                    canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+                    if (mComplicationBorder) {
+                        canvas.drawCircle(centerX, centerY, radius, mComplicationCirclePaint);
+                    }
                 }
             }
         }

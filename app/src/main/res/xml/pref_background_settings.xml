@@ -13,7 +13,7 @@
         android:title="Image">
         <extra
             android:name="id"
-            android:value="3" />
+            android:value="4" />
     </Preference>
     <com.seapip.thomas.line_watchface.MultiSelectListPreference
         android:defaultValue="@array/empty_array"

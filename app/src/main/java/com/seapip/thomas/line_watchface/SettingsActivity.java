@@ -25,7 +25,6 @@ import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
 import android.text.TextUtils;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Set;
@@ -37,7 +36,7 @@ public class SettingsActivity extends PreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        PreferenceManager.setDefaultValues(this, R.xml.pref_backgrounds_settings, false);
+        PreferenceManager.setDefaultValues(this, R.xml.pref_background_settings, false);
         SettingsPreferenceFragment settingsPreferenceFragment = new SettingsPreferenceFragment();
         Bundle bundle = getIntent().getExtras();
         settingsPreferenceFragment.setArguments(bundle);
@@ -111,6 +110,7 @@ public class SettingsActivity extends PreferenceActivity {
                 case "settings_top_complication":
                 case "settings_left_complication":
                 case "settings_right_complication":
+                case "settings_bottom_complication":
                 case "settings_background_complication":
                     int id = extras.getInt("id");
                     startActivityForResult(
@@ -128,9 +128,14 @@ public class SettingsActivity extends PreferenceActivity {
                     intent.putExtra("color_values_id", R.array.color_values);
                     startActivityForResult(intent, COLOR_REQUEST);
                     break;
+                case "complication_settings_screen":
+                    intent = new Intent(getContext(), SettingsActivity.class);
+                    intent.putExtra("resource", R.xml.pref_complication_settings);
+                    startActivity(intent);
+                    break;
                 case "background_settings_screen":
                     intent = new Intent(getContext(), SettingsActivity.class);
-                    intent.putExtra("resource", R.xml.pref_backgrounds_settings);
+                    intent.putExtra("resource", R.xml.pref_background_settings);
                     startActivity(intent);
                     break;
                 case "settings_background_color_name":
@@ -157,6 +162,7 @@ public class SettingsActivity extends PreferenceActivity {
                     case 1:
                     case 2:
                     case 3:
+                    case 4:
                         setComplicationSummary(requestCode, (ComplicationProviderInfo) data.getParcelableExtra(ProviderChooserIntent.EXTRA_PROVIDER_INFO));
                         break;
                     case COLOR_REQUEST:
@@ -264,6 +270,9 @@ public class SettingsActivity extends PreferenceActivity {
                     key = "settings_right_complication";
                     break;
                 case 3:
+                    key = "settings_bottom_complication";
+                    break;
+                case 4:
                     key = "settings_background_complication";
                     break;
                 default:

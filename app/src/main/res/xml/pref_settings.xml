@@ -2,29 +2,9 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     android:key="top_level_settings_screen">
     <Preference
-        android:icon="@drawable/ic_top_complication_black_24dp"
-        android:key="settings_top_complication"
-        android:title="Top \ncomplication">
-        <extra
-            android:name="id"
-            android:value="0" />
-    </Preference>
-    <Preference
-        android:icon="@drawable/ic_left_complication_black_24dp"
-        android:key="settings_left_complication"
-        android:title="Left \ncomplication">
-        <extra
-            android:name="id"
-            android:value="1" />
-    </Preference>
-    <Preference
-        android:icon="@drawable/ic_right_complication_black_24dp"
-        android:key="settings_right_complication"
-        android:title="Right \ncomplication">
-        <extra
-            android:name="id"
-            android:value="2" />
-    </Preference>
+        android:icon="@drawable/ic_complications_black_24dp"
+        android:key="complication_settings_screen"
+        android:title="Complications"/>
     <Preference
         android:icon="@drawable/ic_color_lens_black_24dp"
         android:key="settings_color_name"

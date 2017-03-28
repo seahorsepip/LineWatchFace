@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:title="Complications">
+    <Preference
+        android:icon="@drawable/ic_top_complication_black_24dp"
+        android:key="settings_top_complication"
+        android:title="Top">
+        <extra
+            android:name="id"
+            android:value="0" />
+    </Preference>
+    <Preference
+        android:icon="@drawable/ic_left_complication_black_24dp"
+        android:key="settings_left_complication"
+        android:title="Left">
+        <extra
+            android:name="id"
+            android:value="1" />
+    </Preference>
+    <Preference
+        android:icon="@drawable/ic_right_complication_black_24dp"
+        android:key="settings_right_complication"
+        android:title="Right">
+        <extra
+            android:name="id"
+            android:value="2" />
+    </Preference>
+    <Preference
+        android:icon="@drawable/ic_bottom_complication_black_24dp"
+        android:key="settings_bottom_complication"
+        android:title="Bottom">
+        <extra
+            android:name="id"
+            android:value="3" />
+    </Preference>
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="settings_complication_border"
+        android:title="Draw border" />
+</PreferenceScreen>
