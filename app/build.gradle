@@ -7,8 +7,8 @@ android {
         applicationId "com.seapip.thomas.line_watchface"
         minSdkVersion 25
         targetSdkVersion 25
-        versionCode 9
-        versionName "2.3"
+        versionCode 11
+        versionName "2.5"
     }
     buildTypes {
         release {
@@ -22,9 +22,11 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     provided 'com.google.android.wearable:wearable:2.0.0'
     compile 'com.google.android.support:wearable:2.0.0'
     compile 'com.google.android.gms:play-services-wearable:10.2.0'
     compile 'org.jraf:android-wear-color-picker:1.0.1'
+    compile 'com.anjlab.android.iab.v3:library:1.0.+'
+    compile 'com.github.jayschwa:AndroidSliderPreference:dc26f743ad'
 }

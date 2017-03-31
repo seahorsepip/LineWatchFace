@@ -1,6 +1,8 @@
 package com.seapip.thomas.line_watchface;
 
+import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
@@ -25,12 +27,17 @@ import android.support.wearable.complications.ComplicationProviderInfo;
 import android.support.wearable.complications.ProviderChooserIntent;
 import android.support.wearable.complications.ProviderInfoRetriever;
 import android.text.TextUtils;
+import android.widget.Toast;
+
+import com.anjlab.android.iab.v3.BillingProcessor;
+import com.anjlab.android.iab.v3.TransactionDetails;
 
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-public class SettingsActivity extends PreferenceActivity {
+public class SettingsActivity extends PreferenceActivity implements BillingProcessor.IBillingHandler {
+    static BillingProcessor bp;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +48,33 @@ public class SettingsActivity extends PreferenceActivity {
         Bundle bundle = getIntent().getExtras();
         settingsPreferenceFragment.setArguments(bundle);
         getFragmentManager().beginTransaction().replace(android.R.id.content, settingsPreferenceFragment).commit();
+
+        bp = new BillingProcessor(this, null, this);
+        bp.loadOwnedPurchasesFromGoogle();
+    }
+
+    @Override
+    public void onBillingInitialized() {
+    }
+
+    @Override
+    public void onProductPurchased(String productId, TransactionDetails details) {
+        bp.consumePurchase(productId);
+        donate(this, productId);
+    }
+
+    @Override
+    public void onBillingError(int errorCode, Throwable error) {
+        Toast.makeText(this, "Donation could not be completed.", Toast.LENGTH_LONG).show();
+        finish();
+    }
+
+    @Override
+    public void onPurchaseHistoryRestored() {
+    }
+
+    static public void donate(Activity activity, String productId) {
+        bp.purchase(activity, productId);
     }
 
     public static class SettingsPreferenceFragment extends PreferenceFragment implements
@@ -133,6 +167,11 @@ public class SettingsActivity extends PreferenceActivity {
                     intent.putExtra("resource", R.xml.pref_complication_settings);
                     startActivity(intent);
                     break;
+                case "colors_settings_screen":
+                    intent = new Intent(getContext(), SettingsActivity.class);
+                    intent.putExtra("resource", R.xml.pref_colors_settings);
+                    startActivity(intent);
+                    break;
                 case "background_settings_screen":
                     intent = new Intent(getContext(), SettingsActivity.class);
                     intent.putExtra("resource", R.xml.pref_background_settings);
@@ -147,6 +186,18 @@ public class SettingsActivity extends PreferenceActivity {
                     break;
                 case "time_format":
                     startActivity(new Intent(Settings.ACTION_DATE_SETTINGS));
+                    break;
+                case "donation_screen":
+                    intent = new Intent(getContext(), SettingsActivity.class);
+                    intent.putExtra("resource", R.xml.pref_donation_options);
+                    startActivity(intent);
+                    break;
+                case "donation_1":
+                case "donation_3":
+                case "donation_5":
+                case "donation_10":
+                case "donation_20":
+                    donate(getActivity(), preference.getKey());
                     break;
             }
             return super.onPreferenceTreeClick(preferenceScreen, preference);
@@ -215,44 +266,47 @@ public class SettingsActivity extends PreferenceActivity {
 
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
             Preference preference = findPreference(key);
-            Bundle extras = preference.getExtras();
-            if (preference instanceof MultiSelectListPreference) {
-                Set<String> values = sharedPreferences.getStringSet(key, null);
-                ArrayList<CharSequence> items = new ArrayList<>();
-                CharSequence[] entries = ((MultiSelectListPreference) preference).getEntries();
-                CharSequence[] entryValues = ((MultiSelectListPreference) preference).getEntryValues();
-                for (int x = 0; x < entries.length; x++) {
-                    if (values.contains(entryValues[x].toString())) {
-                        items.add(entries[x]);
-                    }
-                }
-                String delimiter = items.size() == 2 ? " & " : ", ";
-                String summary = items.size() > 0 ? TextUtils.join(delimiter, items) : "None";
-                preference.setSummary(summary);
-            } else if (preference instanceof ListPreference) {
-                String name = extras.getString("icons");
-                if (name != null) {
-                    String value = sharedPreferences.getString(key, null);
-                    int id = getResources().getIdentifier(name, "array", getActivity().getPackageName());
-                    TypedArray icons = getResources().obtainTypedArray(id);
-                    CharSequence[] entryValues = ((ListPreference) preference).getEntryValues();
-                    for (int x = 0; x < entryValues.length; x++) {
-                        if (value.equals(entryValues[x])) {
-                            setStyleIcon(preference, getResources().getDrawable(icons.getResourceId(x, 0)));
+            if (preference != null) {
+                Bundle extras = preference.getExtras();
+                if (preference instanceof MultiSelectListPreference) {
+                    Set<String> values = sharedPreferences.getStringSet(key, null);
+                    ArrayList<CharSequence> items = new ArrayList<>();
+                    CharSequence[] entries = ((MultiSelectListPreference) preference).getEntries();
+                    CharSequence[] entryValues = ((MultiSelectListPreference) preference).getEntryValues();
+                    for (int x = 0; x < entries.length; x++) {
+                        if (values.contains(entryValues[x].toString())) {
+                            items.add(entries[x]);
                         }
                     }
-                    icons.recycle();
+                    String delimiter = items.size() == 2 ? " & " : ", ";
+                    String summary = items.size() > 0 ? TextUtils.join(delimiter, items) : "None";
+                    preference.setSummary(summary);
+                } else if (preference instanceof ListPreference) {
+                    String name = extras.getString("icons");
+                    if (name != null) {
+                        String value = sharedPreferences.getString(key, null);
+                        int id = getResources().getIdentifier(name, "array", getActivity().getPackageName());
+                        TypedArray icons = getResources().obtainTypedArray(id);
+                        CharSequence[] entryValues = ((ListPreference) preference).getEntryValues();
+                        for (int x = 0; x < entryValues.length; x++) {
+                            if (value.equals(entryValues[x])) {
+                                setStyleIcon(preference, getResources().getDrawable(icons.getResourceId(x, 0)));
+                            }
+                        }
+                        icons.recycle();
+                    }
+                } else if (preference.getSummary() != null && preference.getSummary().equals("%s")) {
+                    setSummary(key);
                 }
-            } else if (preference.getSummary() != null && preference.getSummary().equals("%s")) {
-                setSummary(key);
             }
         }
 
         private void setSummary(String key) {
             Preference preference = findPreference(key);
             if (preference != null) {
-                PreferenceManager.setDefaultValues(getContext(), resource, false);
-                String value = PreferenceManager.getDefaultSharedPreferences(getContext()).getString(key, null);
+                Bundle extras = preference.getExtras();
+                String def = extras.getString("default");
+                String value = PreferenceManager.getDefaultSharedPreferences(getContext()).getString(key, def);
                 preference.setSummary(value);
             }
         }

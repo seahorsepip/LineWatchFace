@@ -4,21 +4,30 @@
     <Preference
         android:icon="@drawable/ic_complications_black_24dp"
         android:key="complication_settings_screen"
-        android:title="Complications"/>
+        android:title="Complications" />
+    <ListPreference
+        android:defaultValue="0"
+        android:dialogTitle=""
+        android:entries="@array/style_items"
+        android:entryValues="@array/style_values"
+        android:icon="@drawable/ic_style_black_24dp"
+        android:key="settings_style"
+        android:negativeButtonText=""
+        android:summary="%s"
+        android:title="Style"/>
     <Preference
         android:icon="@drawable/ic_color_lens_black_24dp"
-        android:key="settings_color_name"
-        android:title="Color"
-        android:summary="%s"/>
+        android:key="colors_settings_screen"
+        android:title="Colors" />
     <Preference
         android:icon="@drawable/ic_background_black_24dp"
         android:key="background_settings_screen"
-        android:title="Background"/>
+        android:title="Background" />
     <SwitchPreference
         android:defaultValue="false"
         android:key="settings_ambient"
-        android:summaryOn="Color"
         android:summaryOff="Grayscale"
+        android:summaryOn="Color"
         android:title="Ambient" />
     <ListPreference
         android:defaultValue="0"
@@ -43,6 +52,10 @@
         android:key="settings_time_format"
         android:negativeButtonText=""
         android:summary="%s"
-        android:title="Time format">
-    </ListPreference>
+        android:title="Time format"/>
+    <Preference
+        android:icon="@drawable/ic_donate_black_24dp"
+        android:key="donation_screen"
+        android:title="Donate"
+        android:summary="Support development"/>
 </PreferenceScreen>

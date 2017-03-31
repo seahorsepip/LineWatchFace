@@ -6,7 +6,11 @@
         android:icon="@drawable/ic_color_lens_black_24dp"
         android:key="settings_background_color_name"
         android:summary="%s"
-        android:title="Color" />
+        android:title="Color">
+        <extra
+            android:name="default"
+            android:value="Black" />
+    </Preference>
     <Preference
         android:icon="@drawable/ic_image_black_24dp"
         android:key="settings_background_complication"
