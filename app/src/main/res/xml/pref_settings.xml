@@ -1,10 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
-    android:key="top_level_settings_screen">
-    <Preference
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceScreen
         android:icon="@drawable/ic_complications_black_24dp"
-        android:key="complication_settings_screen"
-        android:title="Complications" />
+        android:key="settings_complication_screen"
+        android:title="Complications">
+        <Preference
+            android:icon="@drawable/ic_top_complication_black_24dp"
+            android:key="settings_top_complication"
+            android:title="Top">
+            <extra
+                android:name="id"
+                android:value="0" />
+        </Preference>
+        <Preference
+            android:icon="@drawable/ic_left_complication_black_24dp"
+            android:key="settings_left_complication"
+            android:title="Left">
+            <extra
+                android:name="id"
+                android:value="1" />
+        </Preference>
+        <Preference
+            android:icon="@drawable/ic_right_complication_black_24dp"
+            android:key="settings_right_complication"
+            android:title="Right">
+            <extra
+                android:name="id"
+                android:value="2" />
+        </Preference>
+        <Preference
+            android:icon="@drawable/ic_bottom_complication_black_24dp"
+            android:key="settings_bottom_complication"
+            android:title="Bottom">
+            <extra
+                android:name="id"
+                android:value="3" />
+        </Preference>
+        <SwitchPreference
+            android:defaultValue="true"
+            android:key="settings_complication_border"
+            android:title="Draw border" />
+    </PreferenceScreen>
     <ListPreference
         android:defaultValue="0"
         android:dialogTitle=""
@@ -14,15 +50,104 @@
         android:key="settings_style"
         android:negativeButtonText=""
         android:summary="%s"
-        android:title="Style"/>
-    <Preference
+        android:title="Style" />
+    <PreferenceScreen
         android:icon="@drawable/ic_color_lens_black_24dp"
-        android:key="colors_settings_screen"
-        android:title="Colors" />
-    <Preference
+        android:key="settings_color_screen"
+        android:title="Colors">
+        <PreferenceCategory android:title="Screen on">
+            <Preference
+                android:icon="@drawable/ic_color_lens_black_24dp"
+                android:key="settings_color_name"
+                android:summary="%s"
+                android:title="Primary Color">
+                <extra
+                    android:name="default"
+                    android:value="Cyan" />
+            </Preference>
+            <Preference
+                android:icon="@drawable/ic_color_lens_black_24dp"
+                android:key="settings_accent_color_name"
+                android:summary="%s"
+                android:title="Accent color">
+                <extra
+                    android:name="default"
+                    android:value="White" />
+            </Preference>
+            <ListPreference
+                android:defaultValue="60"
+                android:dialogTitle=""
+                android:entries="@array/accent_color_opacity_items"
+                android:entryValues="@array/accent_color_opacity_values"
+                android:icon="@drawable/ic_opacity_black_24dp"
+                android:key="settings_accent_color_opacity"
+                android:negativeButtonText=""
+                android:summary="%s opacity"
+                android:title="Accent opacity" />
+        </PreferenceCategory>
+        <PreferenceCategory android:title="Ambient">
+            <Preference
+                android:icon="@drawable/ic_color_lens_black_24dp"
+                android:key="settings_ambient_color_name"
+                android:summary="%s"
+                android:title="Primary Color">
+                <extra
+                    android:name="default"
+                    android:value="Cyan" />
+            </Preference>
+            <Preference
+                android:icon="@drawable/ic_color_lens_black_24dp"
+                android:key="settings_ambient_accent_color_name"
+                android:summary="%s"
+                android:title="Accent color">
+                <extra
+                    android:name="default"
+                    android:value="White" />
+            </Preference>
+            <ListPreference
+                android:defaultValue="60"
+                android:dialogTitle=""
+                android:entries="@array/accent_color_opacity_items"
+                android:entryValues="@array/accent_color_opacity_values"
+                android:icon="@drawable/ic_opacity_black_24dp"
+                android:key="settings_ambient_accent_color_opacity"
+                android:negativeButtonText=""
+                android:summary="%s opacity"
+                android:title="Accent opacity" />
+        </PreferenceCategory>
+    </PreferenceScreen>
+    <PreferenceScreen
         android:icon="@drawable/ic_background_black_24dp"
-        android:key="background_settings_screen"
-        android:title="Background" />
+        android:key="settings_background_screen"
+        android:title="Background">
+        <Preference
+            android:defaultValue="@string/default_background_color"
+            android:icon="@drawable/ic_color_lens_black_24dp"
+            android:key="settings_background_color_name"
+            android:summary="%s"
+            android:title="Color">
+            <extra
+                android:name="default"
+                android:value="Black" />
+        </Preference>
+        <Preference
+            android:icon="@drawable/ic_image_black_24dp"
+            android:key="settings_background_complication"
+            android:title="Image">
+            <extra
+                android:name="id"
+                android:value="4" />
+        </Preference>
+        <com.seapip.thomas.line_watchface.MultiSelectListPreference
+            android:defaultValue="@array/empty_array"
+            android:dialogTitle=""
+            android:entries="@array/background_effect_items"
+            android:entryValues="@array/background_effect_values"
+            android:icon="@drawable/ic_image_filter_black_24dp"
+            android:key="settings_background_effects"
+            android:summary="%s"
+            android:title="Effects" />
+    </PreferenceScreen>
     <SwitchPreference
         android:defaultValue="false"
         android:key="settings_ambient"
@@ -52,10 +177,31 @@
         android:key="settings_time_format"
         android:negativeButtonText=""
         android:summary="%s"
-        android:title="Time format"/>
-    <Preference
+        android:title="Time format" />
+    <PreferenceScreen
         android:icon="@drawable/ic_donate_black_24dp"
-        android:key="donation_screen"
-        android:title="Donate"
-        android:summary="Support development"/>
+        android:key="settings_donate_screen"
+        android:summary="Support development"
+        android:title="Donate">
+        <Preference
+            android:key="donation_1"
+            android:summary="Beer"
+            android:title="Donate &#8364;1" />
+        <Preference
+            android:key="donation_3"
+            android:summary="Pizza slice"
+            android:title="Donate &#8364;3" />
+        <Preference
+            android:key="donation_5"
+            android:summary="Pizza"
+            android:title="Donate &#8364;5" />
+        <Preference
+            android:key="donation_10"
+            android:summary="Big pizza and fries"
+            android:title="Donate &#8364;10" />
+        <Preference
+            android:key="donation_20"
+            android:summary="Big pizza, fries and a movie"
+            android:title="Donate &#8364;20" />
+    </PreferenceScreen>
 </PreferenceScreen>

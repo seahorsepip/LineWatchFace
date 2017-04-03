@@ -2,7 +2,6 @@ package com.seapip.thomas.line_watchface;
 
 import android.app.Activity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.TypedArray;
@@ -14,6 +13,7 @@ import android.preference.ListPreference;
 import android.preference.MultiSelectListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceCategory;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceGroup;
 import android.preference.PreferenceManager;
@@ -39,14 +39,14 @@ import java.util.concurrent.Executor;
 public class SettingsActivity extends PreferenceActivity implements BillingProcessor.IBillingHandler {
     static BillingProcessor bp;
 
+    static public void donate(Activity activity, String productId) {
+        bp.purchase(activity, productId);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        PreferenceManager.setDefaultValues(this, R.xml.pref_background_settings, false);
         SettingsPreferenceFragment settingsPreferenceFragment = new SettingsPreferenceFragment();
-        Bundle bundle = getIntent().getExtras();
-        settingsPreferenceFragment.setArguments(bundle);
         getFragmentManager().beginTransaction().replace(android.R.id.content, settingsPreferenceFragment).commit();
 
         bp = new BillingProcessor(this, null, this);
@@ -73,26 +73,20 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
     public void onPurchaseHistoryRestored() {
     }
 
-    static public void donate(Activity activity, String productId) {
-        bp.purchase(activity, productId);
-    }
-
     public static class SettingsPreferenceFragment extends PreferenceFragment implements
             SharedPreferences.OnSharedPreferenceChangeListener {
 
         final private int COLOR_REQUEST = 10;
-        final private int BACKGROUND_COLOR_REQUEST = 11;
+        final private int ACCENT_COLOR_REQUEST = 11;
+        final private int BACKGROUND_COLOR_REQUEST = 12;
 
-        int resource;
         ProviderInfoRetriever providerInfoRetriever;
 
         @Override
         public void onCreate(final Bundle savedInstanceState) {
-            resource = getArguments().getInt("resource");
-            resource = resource == 0 ? R.xml.pref_settings : resource;
             super.onCreate(savedInstanceState);
-            addPreferencesFromResource(resource);
-            updateAll(getPreferenceScreen());
+            addPreferencesFromResource(R.xml.pref_settings);
+            updateAll();
         }
 
         @Override
@@ -131,12 +125,6 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
         }
 
         @Override
-        public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-            super.onActivityCreated(savedInstanceState);
-            PreferenceManager.setDefaultValues(getActivity(), resource, false);
-        }
-
-        @Override
         public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
             Bundle extras = preference.getExtras();
             Intent intent;
@@ -162,20 +150,12 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
                     intent.putExtra("color_values_id", R.array.color_values);
                     startActivityForResult(intent, COLOR_REQUEST);
                     break;
-                case "complication_settings_screen":
-                    intent = new Intent(getContext(), SettingsActivity.class);
-                    intent.putExtra("resource", R.xml.pref_complication_settings);
-                    startActivity(intent);
-                    break;
-                case "colors_settings_screen":
-                    intent = new Intent(getContext(), SettingsActivity.class);
-                    intent.putExtra("resource", R.xml.pref_colors_settings);
-                    startActivity(intent);
-                    break;
-                case "background_settings_screen":
-                    intent = new Intent(getContext(), SettingsActivity.class);
-                    intent.putExtra("resource", R.xml.pref_background_settings);
-                    startActivity(intent);
+                case "settings_accent_color_name":
+                    intent = new Intent(getContext(), ColorActivity.class);
+                    intent.putExtra("color", getPreferenceScreen().getSharedPreferences().getInt("settings_accent_color_value", Color.parseColor("#FFFFFF")));
+                    intent.putExtra("color_names_id", R.array.color_names);
+                    intent.putExtra("color_values_id", R.array.color_values);
+                    startActivityForResult(intent, ACCENT_COLOR_REQUEST);
                     break;
                 case "settings_background_color_name":
                     intent = new Intent(getContext(), ColorActivity.class);
@@ -186,11 +166,6 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
                     break;
                 case "time_format":
                     startActivity(new Intent(Settings.ACTION_DATE_SETTINGS));
-                    break;
-                case "donation_screen":
-                    intent = new Intent(getContext(), SettingsActivity.class);
-                    intent.putExtra("resource", R.xml.pref_donation_options);
-                    startActivity(intent);
                     break;
                 case "donation_1":
                 case "donation_3":
@@ -222,6 +197,12 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
                         editor.apply();
                         setSummary("settings_color_name");
                         break;
+                    case ACCENT_COLOR_REQUEST:
+                        editor.putString("settings_accent_color_name", data.getStringExtra("color_name"));
+                        editor.putInt("settings_accent_color_value", data.getIntExtra("color_value", 0));
+                        editor.apply();
+                        setSummary("settings_accent_color_name");
+                        break;
                     case BACKGROUND_COLOR_REQUEST:
                         editor.putString("settings_background_color_name", data.getStringExtra("color_name"));
                         editor.putInt("settings_background_color_value", data.getIntExtra("color_value", 0));
@@ -245,9 +226,23 @@ public class SettingsActivity extends PreferenceActivity implements BillingProce
                     .unregisterOnSharedPreferenceChangeListener(this);
         }
 
-        private void updateAll(PreferenceGroup preferenceGroup) {
-            for (int x = 0; x < preferenceGroup.getPreferenceCount(); x++) {
-                Preference preference = preferenceGroup.getPreference(x);
+        private ArrayList<Preference> getPreferenceList(Preference p, ArrayList<Preference> list) {
+            if (p instanceof PreferenceCategory || p instanceof PreferenceScreen) {
+                PreferenceGroup pGroup = (PreferenceGroup) p;
+                int pCount = pGroup.getPreferenceCount();
+                for (int i = 0; i < pCount; i++) {
+                    getPreferenceList(pGroup.getPreference(i), list);
+                }
+            }
+            if (!(p instanceof PreferenceCategory)) {
+                list.add(p);
+            }
+            return list;
+        }
+
+        private void updateAll() {
+            ArrayList<Preference> preferences = getPreferenceList(getPreferenceScreen(), new ArrayList<Preference>());
+            for (Preference preference : preferences) {
                 Drawable icon = preference.getIcon();
                 if (icon != null) {
                     setStyleIcon(preference, icon);

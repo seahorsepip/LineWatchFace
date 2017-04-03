@@ -131,15 +131,18 @@ public class WatchFaceService extends CanvasWatchFaceService {
     private class Engine extends CanvasWatchFaceService.Engine {
         /* Handler to update the time once a second in interactive mode. */
         private final Handler mUpdateTimeHandler = new EngineHandler(this);
-        boolean mComplicationBorder;
-        boolean mBackgroundEffectDarken;
-        boolean mBackgroundEffectBlur;
-        boolean mBackgroundEffectGrayscale;
-        boolean mAmbientColor;
-        boolean mNotificationIndicatorUnread;
-        boolean mNotificationIndicatorAll;
-        boolean mTimeFormat24;
-        boolean mTimeFormat12;
+        private boolean mComplicationBorder;
+        private boolean mStyleDigitalog;
+        private boolean mStyleDigital;
+        private boolean mStyleAnalog;
+        private boolean mBackgroundEffectDarken;
+        private boolean mBackgroundEffectBlur;
+        private boolean mBackgroundEffectGrayscale;
+        private boolean mAmbientColor;
+        private boolean mNotificationIndicatorUnread;
+        private boolean mNotificationIndicatorAll;
+        private boolean mTimeFormat24;
+        private boolean mTimeFormat12;
         private int mPrimaryColor;
         private int mBackgroundColor;
         private Calendar mCalendar;
@@ -153,13 +156,14 @@ public class WatchFaceService extends CanvasWatchFaceService {
         private boolean mRegisteredTimeZoneReceiver = false;
         private float mCenterX;
         private float mCenterY;
-        /* Colors */
         private int mSecondaryColor;
         private int mTertiaryColor;
         private int mQuaternaryColor;
         private Paint mBackgroundOverlayPaint;
-        private Paint mHourPaint;
+        private Paint mHourTextPaint;
+        private Paint mMinuteTextPaint;
         private Paint mMinutePaint;
+        private Paint mSecondTextPaint;
         private Paint mSecondPaint;
         private Paint mHourTickPaint;
         private Paint mTickPaint;
@@ -195,8 +199,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     .build());
 
             mCalendar = Calendar.getInstance();
-
-
             mPrefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
             /* Set defaults for fonts */
@@ -204,25 +206,17 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mFontBold = Typeface.create("sans-serif", Typeface.BOLD);
             mFont = Typeface.create("sans-serif", Typeface.NORMAL);
 
-            /* Set defaults for colors */
-            mSecondaryColor = Color.argb(128, 255, 255, 255);
-            mTertiaryColor = Color.argb(76, 255, 255, 255);
-            mQuaternaryColor = Color.argb(24, 255, 255, 255);
-
             initializeBackground();
             initializeComplication();
             initializeWatchFace();
             initializeNotificationCount();
 
             getSettingValues();
+            updateStyle();
         }
 
         private void initializeBackground() {
-            mBackgroundColor = Color.BLACK;
-
             mBackgroundOverlayPaint = new Paint();
-            int overlayColor = Color.argb(128, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
-            mBackgroundOverlayPaint.setColor(overlayColor);
         }
 
         private void initializeComplication() {
@@ -273,16 +267,56 @@ public class WatchFaceService extends CanvasWatchFaceService {
         }
 
         private void initializeWatchFace() {
-            mHourPaint = new Paint();
-            mHourPaint.setColor(mPrimaryColor);
-            mHourPaint.setAntiAlias(true);
-            mHourPaint.setTextAlign(Paint.Align.CENTER);
+            mHourTextPaint = new Paint();
+            mHourTextPaint.setColor(mPrimaryColor);
+            mHourTextPaint.setAntiAlias(true);
+
+            mMinuteTextPaint = new Paint();
+            mMinuteTextPaint.setColor(mSecondaryColor);
+            mMinuteTextPaint.setAntiAlias(true);
+            mMinuteTextPaint.setTypeface(mFontBold);
 
             mMinutePaint = new Paint();
             mMinutePaint.setColor(mPrimaryColor);
             mMinutePaint.setStrokeWidth(4f);
             mMinutePaint.setAntiAlias(true);
             mMinutePaint.setStrokeCap(Paint.Cap.SQUARE);
+
+            mSecondTextPaint = new Paint();
+            mSecondTextPaint.setColor(mTertiaryColor);
+            mSecondTextPaint.setAntiAlias(true);
+            mSecondTextPaint.setTextAlign(Paint.Align.LEFT);
+            mSecondTextPaint.setTypeface(mFontBold);
+
+            mSecondPaint = new Paint();
+            mSecondPaint.setColor(mSecondaryColor);
+            mSecondPaint.setStrokeWidth(6f);
+            mSecondPaint.setAntiAlias(true);
+            mSecondPaint.setStrokeCap(Paint.Cap.BUTT);
+            mSecondPaint.setStyle(Paint.Style.STROKE);
+
+            mHourTickPaint = new Paint();
+            mHourTickPaint.setColor(mSecondaryColor);
+            mHourTickPaint.setStrokeWidth(4f);
+            mHourTickPaint.setAntiAlias(true);
+            mHourTickPaint.setStrokeCap(Paint.Cap.SQUARE);
+
+            mTickPaint = new Paint();
+            mTickPaint.setColor(mTertiaryColor);            mMinuteTextPaint.setColor(mSecondaryColor);
+            mMinuteTextPaint.setAntiAlias(true);
+            mMinuteTextPaint.setTypeface(mFontBold);
+
+            mMinutePaint = new Paint();
+            mMinutePaint.setColor(mPrimaryColor);
+            mMinutePaint.setStrokeWidth(4f);
+            mMinutePaint.setAntiAlias(true);
+            mMinutePaint.setStrokeCap(Paint.Cap.SQUARE);
+
+            mSecondTextPaint = new Paint();
+            mSecondTextPaint.setColor(mTertiaryColor);
+            mSecondTextPaint.setAntiAlias(true);
+            mSecondTextPaint.setTextAlign(Paint.Align.LEFT);
+            mSecondTextPaint.setTypeface(mFontBold);
 
             mSecondPaint = new Paint();
             mSecondPaint.setColor(mSecondaryColor);
@@ -356,7 +390,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             super.onAmbientModeChanged(inAmbientMode);
             mAmbient = inAmbientMode;
 
-            updateWatchHandStyle();
+            updateStyle();
 
             /* Check and trigger whether or not timer should be running (only in active mode). */
             updateTimer();
@@ -368,9 +402,25 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mIsRound = insets.isRound();
         }
 
-        private void updateWatchHandStyle() {
+        private void updateStyle() {
+            int overlayColor = Color.argb(128, Color.red(mBackgroundColor), Color.green(mBackgroundColor), Color.blue(mBackgroundColor));
+            mBackgroundOverlayPaint.setColor(overlayColor);
+            mMinuteTextPaint.setColor(mSecondaryColor);
+            mMinutePaint.setColor(mPrimaryColor);
+            mSecondTextPaint.setColor(mTertiaryColor);
+            mSecondPaint.setColor(mSecondaryColor);
+            mHourTickPaint.setColor(mSecondaryColor);
+            mTickPaint.setColor(mTertiaryColor);
+            mComplicationArcValuePaint.setColor(mSecondaryColor);
+            mComplicationArcPaint.setColor(mTertiaryColor);
+            mComplicationCirclePaint.setColor(mQuaternaryColor);
+            mComplicationPrimaryLongTextPaint.setColor(mSecondaryColor);
+            mComplicationPrimaryTextPaint.setColor(mSecondaryColor);
+            mComplicationTextPaint.setColor(mTertiaryColor);
+            mComplicationLongTextPaint.setColor(mTertiaryColor);
+
             if (mAmbient) {
-                mHourPaint.setColor(Color.WHITE);
+                mHourTextPaint.setColor(Color.WHITE);
                 mMinutePaint.setColor(Color.WHITE);
                 if (mLowBitAmbient) {
                     mHourTickPaint.setColor(Color.WHITE);
@@ -379,14 +429,14 @@ public class WatchFaceService extends CanvasWatchFaceService {
                     mComplicationPrimaryTextPaint.setColor(Color.WHITE);
                 }
                 if (mBurnInProtection) {
-                    mHourPaint.setTypeface(mFontLight);
+                    mHourTextPaint.setTypeface(mFontLight);
                     mNotificationCirclePaint.setStyle(Paint.Style.STROKE);
                     mNotificationTextPaint.setColor(Color.WHITE);
                 }
 
             } else {
-                mHourPaint.setColor(mPrimaryColor);
-                mHourPaint.setTypeface(mFont);
+                mHourTextPaint.setColor(mPrimaryColor);
+                mHourTextPaint.setTypeface(mFont);
                 mMinutePaint.setColor(mPrimaryColor);
                 mHourTickPaint.setColor(mSecondaryColor);
                 mComplicationArcValuePaint.setColor(mSecondaryColor);
@@ -410,7 +460,9 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mCenterX = width / 2;
             mCenterY = height / 2;
 
-            mHourPaint.setTextSize(width / 6);
+            mHourTextPaint.setTextSize(width / 6);
+            mMinuteTextPaint.setTextSize(width / 15);
+            mSecondTextPaint.setTextSize(width / 15);
             mComplicationPrimaryLongTextPaint.setTextSize(width / 23);
             mComplicationPrimaryTextPaint.setTextSize(width / 18);
             mComplicationLongTextPaint.setTextSize(width / 25);
@@ -487,7 +539,16 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
         private void getSettingValues() {
             mPrimaryColor = mPrefs.getInt("settings_color_value", Color.parseColor("#18FFFF"));
+            int secondaryColor = mPrefs.getInt("settings_accent_color_value", Color.parseColor("#FFFFFF"));
+            float secondaryOpacity = Integer.parseInt(mPrefs.getString("settings_accent_color_opacity", "60")) / 100f;
+            mSecondaryColor = Color.argb(Math.round(secondaryOpacity * 255), Color.red(secondaryColor), Color.green(secondaryColor), Color.blue(secondaryColor));
+            mTertiaryColor = Color.argb(Math.round(secondaryOpacity * 152), Color.red(secondaryColor), Color.green(secondaryColor), Color.blue(secondaryColor));
+            mQuaternaryColor = Color.argb(Math.round(secondaryOpacity * 48), Color.red(secondaryColor), Color.green(secondaryColor), Color.blue(secondaryColor));
             mComplicationBorder = mPrefs.getBoolean("settings_complication_border", true);
+            String mStyle = mPrefs.getString("settings_style", "0");
+            mStyleDigitalog = mStyle.equals("0");
+            mStyleDigital = mStyle.equals("1");
+            mStyleAnalog = mStyle.equals("2");
             mBackgroundColor = mPrefs.getInt("settings_background_color_value", Color.BLACK);
             Set<String> backgroundEffects = mPrefs.getStringSet("settings_background_effects", null);
             mBackgroundEffectDarken = backgroundEffects != null && backgroundEffects.contains("0");
@@ -508,11 +569,26 @@ public class WatchFaceService extends CanvasWatchFaceService {
             mCalendar.setTimeInMillis(now);
 
             drawBackground(canvas, now, BACKGROUND_COMPLICATION);
-            drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2);
-            drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, mCenterX / 2, mCenterY);
-            drawComplication(canvas, now, BOTTOM_DIAL_COMPLICATION, mCenterX, mCenterY * 1.5f);
-            drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, mCenterX * 1.5f, mCenterY);
-            drawWatchFace(canvas);
+
+            float offset = mStyleDigital ? mCenterX * 0.13f : 0;
+
+            drawComplication(canvas, now, TOP_DIAL_COMPLICATION, mCenterX, mCenterY / 2 - offset);
+            drawComplication(canvas, now, LEFT_DIAL_COMPLICATION, mCenterX / 2 - offset, mCenterY);
+            drawComplication(canvas, now, BOTTOM_DIAL_COMPLICATION, mCenterX, mCenterY * 1.5f + offset);
+            drawComplication(canvas, now, RIGHT_DIAL_COMPLICATION, mCenterX * 1.5f + offset, mCenterY);
+
+            if (mStyleDigitalog || mStyleAnalog) {
+                drawTicks(canvas);
+            }
+            if (!mAmbient && !mStyleDigital) {
+                drawSeconds(canvas);
+            }
+            if (mStyleDigitalog) {
+                drawDigitalogTime(canvas);
+            } else if (mStyleDigital) {
+                drawDigitalTime(canvas);
+            }
+
             drawNotificationCount(canvas);
         }
 
@@ -614,16 +690,18 @@ public class WatchFaceService extends CanvasWatchFaceService {
             If bottom complication data exists then only the right space is available
             instead of the bottom right space.
             */
+            float offset = mStyleDigital ? mCenterX * 0.1f : 0;
+
             if (bottomComplicationData != null &&
                     bottomComplicationData.getType() != ComplicationData.TYPE_EMPTY &&
                     bottomComplicationData.getType() != ComplicationData.TYPE_NO_DATA &&
                     bottomComplicationData.isActive(currentTimeMillis)) {
-                centerX = mCenterX * 1.5f;
+                centerX = mCenterX * 1.5f + offset;
                 centerY = mCenterY;
                 radius = mCenterX / 4;
             } else {
-                centerX = mCenterX + mCenterX / 4 + 10;
-                centerY = mCenterY + mCenterY / 4 + 10;
+                centerX = mCenterX + mCenterX / 4 + 10 + offset * 1.3f;
+                centerY = mCenterY + mCenterY / 4 + 10 + offset * 0.3f;
                 radius = mCenterX / 2;
                 if (!mIsRound) {
                     radius *= 1.2f;
@@ -709,7 +787,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
 
             float height = mCenterY / 4;
             float width = mCenterX * 1.2f;
-            if(!mIsRound) {
+            if (!mIsRound) {
                 width = mCenterX * 1.5f;
                 centerY += mCenterY / 16;
             }
@@ -992,12 +1070,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
             return new BitmapDrawable(output);
         }
 
-        private void drawWatchFace(Canvas canvas) {
-            if (!mAmbient || mAmbientColor) {
-                mHourPaint.setColor(mPrimaryColor);
-                mMinutePaint.setColor(mPrimaryColor);
-            }
-
+        private void drawTicks(Canvas canvas) {
             if (mIsRound) {
                 float outerRadius = mCenterX - 6;
                 for (int tickIndex = 0; tickIndex < 60; tickIndex++) {
@@ -1056,30 +1129,57 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 canvas.drawLine(innerX + mCenterX, mCenterY + innerY, outerX + mCenterX, mCenterY + outerY, mMinutePaint);
                 canvas.restore();
             }
+        }
 
+        private void drawSeconds(Canvas canvas) {
             int milliseconds = mCalendar.get(Calendar.SECOND) * 1000 + mCalendar.get(Calendar.MILLISECOND);
-            if (!mAmbient) {
-                float percentage = milliseconds / 60000f;
-                Path path = new Path();
-                if (mIsRound) {
-                    path.moveTo(mCenterX - 2, 1);
-                    path.lineTo(mCenterX + 2, 1);
-                    path.arcTo(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -90, 359.99f, false);
-                } else {
-                    path.moveTo(mCenterX - 2, 1);
-                    path.lineTo(mCenterX * 2 - 1, 1);
-                    path.lineTo(mCenterX * 2 - 1, mCenterY * 2 - 1);
-                    path.lineTo(1, mCenterY * 2 - 1);
-                    path.lineTo(1, 1);
-                    path.lineTo(mCenterX, 1);
-                }
-                PathMeasure measure = new PathMeasure(path, false);
-                float length = measure.getLength();
-                Path partialPath = new Path();
-                measure.getSegment(0, length * percentage, partialPath, true);
-                canvas.drawPath(partialPath, mSecondPaint);
+            float percentage = milliseconds / 60000f;
+            Path path = new Path();
+            if (mIsRound) {
+                path.moveTo(mCenterX - 2, 1);
+                path.lineTo(mCenterX + 2, 1);
+                path.arcTo(1, 1, mCenterX * 2 - 1, mCenterY * 2 - 1, -90, 359.99f, false);
+            } else {
+                path.moveTo(mCenterX - 2, 1);
+                path.lineTo(mCenterX * 2 - 1, 1);
+                path.lineTo(mCenterX * 2 - 1, mCenterY * 2 - 1);
+                path.lineTo(1, mCenterY * 2 - 1);
+                path.lineTo(1, 1);
+                path.lineTo(mCenterX, 1);
             }
+            PathMeasure measure = new PathMeasure(path, false);
+            float length = measure.getLength();
+            Path partialPath = new Path();
+            measure.getSegment(0, length * percentage, partialPath, true);
+            canvas.drawPath(partialPath, mSecondPaint);
+        }
 
+        private void drawMinutes(Canvas canvas) {
+            if (mIsRound) {
+                float outerRadius = mCenterX - 7;
+                float innerRadius = mCenterX / 2;
+                float minuteRot = (float) Math.PI / 30 * mCalendar.get(Calendar.MINUTE);
+                float innerX = (float) Math.sin(minuteRot) * innerRadius;
+                float innerY = (float) -Math.cos(minuteRot) * innerRadius;
+                float outerX = (float) Math.sin(minuteRot) * outerRadius;
+                float outerY = (float) -Math.cos(minuteRot) * outerRadius;
+                canvas.drawLine(mCenterX + innerX, mCenterY + innerY,
+                        mCenterX + outerX, mCenterY + outerY, mMinutePaint);
+            } else {
+                int min = mCalendar.get(Calendar.MINUTE) + 7;
+                canvas.save();
+                canvas.rotate((float) Math.floor(min / 15) * 90 - 180, mCenterX, mCenterY);
+                float magic = (float) (-1 / Math.tan(-0.25 * Math.PI + (min % 15) * Math.PI / 30 + Math.PI / 60));
+                float outerY = mCenterY - 7;
+                float outerX = outerY / magic;
+                float innerY = mCenterY / 2;
+                float innerX = innerY / magic;
+                canvas.drawLine(innerX + mCenterX, mCenterY + innerY, outerX + mCenterX, mCenterY + outerY, mMinutePaint);
+                canvas.restore();
+            }
+        }
+
+        private void drawDigitalogTime(Canvas canvas) {
             String hourString;
             if ((DateFormat.is24HourFormat(WatchFaceService.this) && !mTimeFormat24 && !mTimeFormat12) || mTimeFormat24) {
                 hourString = String.valueOf(mCalendar.get(Calendar.HOUR_OF_DAY));
@@ -1090,7 +1190,50 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 }
                 hourString = String.valueOf(hour);
             }
-            canvas.drawText(hourString, mCenterX, mCenterY - (mHourPaint.descent() + mHourPaint.ascent()) / 2, mHourPaint);
+            mHourTextPaint.setTextAlign(Paint.Align.CENTER);
+            canvas.drawText(hourString, mCenterX, mCenterY - (mHourTextPaint.descent() + mHourTextPaint.ascent()) / 2, mHourTextPaint);
+
+            drawMinutes(canvas);
+        }
+
+        private void drawDigitalTime(Canvas canvas) {
+            String hourString;
+            if ((DateFormat.is24HourFormat(WatchFaceService.this) && !mTimeFormat24 && !mTimeFormat12) || mTimeFormat24) {
+                hourString = String.valueOf(mCalendar.get(Calendar.HOUR_OF_DAY));
+            } else {
+                int hour = mCalendar.get(Calendar.HOUR);
+                if (hour == 0) {
+                    hour = 12;
+                }
+                hourString = String.valueOf(hour);
+            }
+            String minuteString = String.valueOf(mCalendar.get(Calendar.MINUTE));
+            if (minuteString.length() == 1) {
+                minuteString = "0" + minuteString;
+            }
+            String secondString = String.valueOf(mCalendar.get(Calendar.SECOND));
+            if (secondString.length() == 1) {
+                secondString = "0" + secondString;
+            }
+
+            mHourTextPaint.setTextAlign(Paint.Align.RIGHT);
+            mMinuteTextPaint.setTextAlign(Paint.Align.LEFT);
+            mSecondTextPaint.setTextAlign(Paint.Align.LEFT);
+            canvas.drawText(hourString,
+                    mCenterX + mCenterX / 12,
+                    mCenterY - (mHourTextPaint.descent() + mHourTextPaint.ascent()) / 2,
+                    mHourTextPaint);
+            canvas.drawText(minuteString,
+                    mCenterX + mCenterX / 9,
+                    mCenterY - (mMinuteTextPaint.descent() + mMinuteTextPaint.ascent()) +
+                            (mHourTextPaint.descent() + mHourTextPaint.ascent()) / 2,
+                    mMinuteTextPaint);
+            if (!mAmbient) {
+                canvas.drawText(secondString,
+                        mCenterX + mCenterX / 9,
+                        mCenterY - (mHourTextPaint.descent() + mHourTextPaint.ascent()) / 2,
+                        mSecondTextPaint);
+            }
         }
 
         private void drawNotificationCount(Canvas canvas) {
@@ -1099,7 +1242,6 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 count = mUnreadNotificationCount;
             } else if (mNotificationIndicatorAll) {
                 count = mNotificationCount;
-                Log.d("LINE", "ALL");
             }
             if (count > 0) {
                 canvas.drawRect(0, mCenterY * 2 - 100, mCenterX * 2, mCenterY * 2, mNotificationBackgroundPaint);
@@ -1117,6 +1259,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 /* Update time zone in case it changed while we weren't visible. */
                 mCalendar.setTimeZone(TimeZone.getDefault());
                 getSettingValues();
+                updateStyle();
                 invalidate();
             } else {
                 unregisterReceiver();
