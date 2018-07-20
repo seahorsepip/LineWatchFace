@@ -676,7 +676,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
         private void drawRangeComplication(Canvas canvas, ComplicationData data, long currentTimeMillis, int id) {
             float min = data.getMinValue();
             float max = data.getMaxValue();
-            float val = data.getValue();
+            float dataVal = data.getValue();
+            float arcVal = (dataVal > max) ? max : dataVal;
 
             ComplicationData bottomComplicationData = mActiveComplicationDataSparseArray.get(BOTTOM_DIAL_COMPLICATION);
 
@@ -718,8 +719,8 @@ public class WatchFaceService extends CanvasWatchFaceService {
             Canvas arcCanvas = new Canvas(arcBitmap);
             Path path = new Path();
             path.addArc(2, 2, radius * 2 + 2, radius * 2 + 2,
-                    -90 + (val - min) / (max - min) * 270,
-                    270 - (val - min) / (max - min) * 270);
+                    -90 + (arcVal - min) / (max - min) * 270,
+                    270 - (arcVal - min) / (max - min) * 270);
 
             int complicationSteps = 10;
             for (int tickIndex = 1; tickIndex < complicationSteps; tickIndex++) {
@@ -733,10 +734,10 @@ public class WatchFaceService extends CanvasWatchFaceService {
             }
             arcCanvas.drawPath(path, mComplicationArcPaint);
 
-            float valRot = (float) ((val - min) * Math.PI * 3 / 2 / (max - min) - startAngle / 180 * Math.PI - Math.PI / 2);
+            float valRot = (float) ((arcVal - min) * Math.PI * 3 / 2 / (max - min) - startAngle / 180 * Math.PI - Math.PI / 2);
             Path valuePath = new Path();
             valuePath.addArc(2, 2, radius * 2 + 2, radius * 2 + 2,
-                    -90, (val - min) / (max - min) * 270 + 0.0001f);
+                    -90, (arcVal - min) / (max - min) * 270 + 0.0001f);
             valuePath.lineTo((float) Math.sin(valRot) * (radius - (0.15f * mCenterX)) + radius + 2, (float) -Math.cos(valRot) * (radius - (0.15f * mCenterX)) + radius + 2);
             mComplicationArcValuePaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
             arcCanvas.drawPath(valuePath, mComplicationArcValuePaint);
@@ -768,7 +769,7 @@ public class WatchFaceService extends CanvasWatchFaceService {
                 }
             } else {
                 mComplicationPrimaryTextPaint.setTextAlign(Paint.Align.CENTER);
-                canvas.drawText(complicationNumberString(val),
+                canvas.drawText(complicationNumberString(dataVal),
                         centerX,
                         centerY - (mComplicationPrimaryTextPaint.descent() + mComplicationPrimaryTextPaint.ascent()) / 2,
                         mComplicationPrimaryTextPaint);
